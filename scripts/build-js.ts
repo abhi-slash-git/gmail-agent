@@ -8,7 +8,7 @@
  *     pglite.wasm     - PGlite WebAssembly module
  */
 
-import { chmod, exists, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { access, chmod, mkdir, readdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import externalsPlugin from "../plugins/externals-plugin";
 import reactCompilerPlugin from "../plugins/react-compiler-plugin";
@@ -22,7 +22,10 @@ async function main() {
 	const outdir = join(process.cwd(), "dist");
 
 	// Clean previous build
-	if (await exists(outdir)) {
+	const outdirExists = await access(outdir)
+		.then(() => true)
+		.catch(() => false);
+	if (outdirExists) {
 		if (verbose) console.log("Cleaning previous build...");
 		await rm(outdir, { force: true, recursive: true });
 	}

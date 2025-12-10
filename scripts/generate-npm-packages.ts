@@ -14,25 +14,16 @@
  * This should be run after `bun run build` to package the built files.
  */
 
-import {
-	cpSync,
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	rmSync,
-	writeFileSync
-} from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import packageJson from "../package.json";
 
 const ROOT = process.cwd();
 const DIST_DIR = join(ROOT, "dist");
 const NPM_DIR = join(ROOT, "npm");
 
 // Read version from package.json
-const rootPackageJson = JSON.parse(
-	readFileSync(join(ROOT, "package.json"), "utf-8")
-);
-const VERSION = rootPackageJson.version;
+const VERSION = packageJson.version;
 
 function generatePackage(): void {
 	console.log("\n📦 Generating npm package\n");
@@ -68,16 +59,24 @@ function generatePackage(): void {
 		bin: {
 			"gmail-agent": "cli.js"
 		},
+		bugs: {
+			url: "https://github.com/abhi-slash-git/gmail-agent/issues"
+		},
 		description: "AI-powered email classification CLI tool",
 		engines: {
 			node: ">=18"
 		},
 		files: ["cli.js", "pglite.wasm", "pglite.data"],
+		homepage: "https://github.com/abhi-slash-git/gmail-agent#readme",
 		keywords: ["gmail", "email", "ai", "classification", "cli", "bedrock"],
 		license: "MIT",
 		name: "gmail-agent",
 		publishConfig: {
 			access: "public"
+		},
+		repository: {
+			type: "git",
+			url: "git+https://github.com/abhi-slash-git/gmail-agent.git"
 		},
 		version: VERSION
 	};
