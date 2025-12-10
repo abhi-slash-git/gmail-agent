@@ -27,9 +27,9 @@
 		"@types/node": "24.10.2",
 		"@types/react": "19.2.7",
 		"@types/turndown": "5.0.6",
+		"@typescript/native-preview": "7.0.0-dev.20251210.1",
 		"drizzle-kit": "0.31.8",
-		"husky": "9.1.7",
-		"typescript": "5.9.3"
+		"husky": "9.1.7"
 	},
 	"module": "index.tsx",
 	"name": "gmail-agent",
@@ -45,7 +45,7 @@
 		"postinstall": "bun scripts/copy-pglite-assets.ts",
 		"prepare": "husky",
 		"start": "bun run index.tsx",
-		"tsc": "tsc --noEmit 2>&1 | head -50"
+		"tsc": "tsgo --noEmit 2>&1 | head -50"
 	},
 	"type": "module",
 	"version": "1.0.0"

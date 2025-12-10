@@ -27,5 +27,6 @@
 		"**/pglite-assets": true,
 		"**/src/drizzle/*.json": true
 	},
+	"typescript.experimental.useTsgo": true,
 	"typescript.tsdk": "node_modules/typescript/lib"
 }
