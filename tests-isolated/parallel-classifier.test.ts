@@ -1,5 +1,9 @@
 import { describe, expect, mock, test } from "bun:test";
+import { join } from "node:path";
 import type { Classifier } from "../src/database/connection";
+
+// Get absolute paths for mocking
+const srcDir = join(import.meta.dir, "../src");
 
 // Mock the AI SDK - using any to allow flexible mock implementations
 // biome-ignore lint/suspicious/noExplicitAny: mock needs flexible typing
@@ -14,8 +18,8 @@ mock.module("ai", () => ({
 	generateObject: mockGenerateObject
 }));
 
-// Mock the provider
-mock.module("./provider", () => ({
+// Mock the provider using absolute path
+mock.module(join(srcDir, "ai/provider"), () => ({
 	getModel: mock(() => "mock-model")
 }));
 
@@ -35,7 +39,8 @@ const mockWithRetry = mock(
 
 const mockRecordError = mock(() => {});
 
-mock.module("../utils/retry.js", () => ({
+// Mock using absolute path
+mock.module(join(srcDir, "utils/retry.js"), () => ({
 	AdaptiveRateLimiter: class {
 		getConcurrency = () => 30;
 		recordError = mockRecordError;
