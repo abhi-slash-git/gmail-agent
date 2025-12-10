@@ -52,6 +52,7 @@
 		"start": "bun run index.tsx",
 		"test": "bun test src",
 		"test:all": "bun run test && bun run test:isolated:pglite && bun run test:isolated:connection && bun run test:isolated:classifier",
+		"test:all:coverage": "bun test --coverage src && bun test --coverage tests-isolated/pglite-wrapper.test.ts && bun test --coverage tests-isolated/connection.test.ts && bun test --coverage tests-isolated/parallel-classifier.test.ts",
 		"test:coverage": "bun test --coverage src",
 		"test:isolated:classifier": "bun test tests-isolated/parallel-classifier.test.ts",
 		"test:isolated:connection": "bun test tests-isolated/connection.test.ts",
