@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
-		"allowJs": true,
+		"incremental": true,
 		"jsx": "react-jsx",
 		// Environment setup & latest features
 		"lib": ["ESNext"],
@@ -24,6 +24,14 @@
 		// Best practices
 		"strict": true,
 		"target": "ESNext",
+		"tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo",
 		"verbatimModuleSyntax": true
-	}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"scripts/**/*.ts",
+		"plugins/**/*.ts",
+		"index.tsx"
+	]
 }

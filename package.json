@@ -1,7 +1,4 @@
 {
-	"bin": {
-		"gmail-agent": "./index.tsx"
-	},
 	"dependencies": {
 		"@ai-sdk/amazon-bedrock": "3.0.68",
 		"@ai-sdk/anthropic": "2.0.54",
@@ -38,24 +35,17 @@
 	"name": "gmail-agent",
 	"private": true,
 	"scripts": {
-		"build": "bun run build.ts",
-		"build:all": "bun run build.ts --all",
-		"build:linux": "bun run build.ts -t linux-x64 -t linux-arm64",
-		"build:macos": "bun run build.ts -t darwin-x64 -t darwin-arm64",
-		"build:npm": "bun run build:all && bun run npm:package",
-		"build:windows": "bun run build.ts -t windows-x64",
+		"build": "bun scripts/build-js.ts",
+		"build:npm": "bun run build && bun run npm:package",
 		"db:check": "bun --bun drizzle-kit check",
 		"db:generate": "bun --bun drizzle-kit generate && bun scripts/compile-migration.ts",
 		"dev": "bun --hot run index.tsx",
-		"install:local": "bun run build && sudo cp dist/gmail-agent-* /usr/local/bin/gmail-agent && echo '✓ Installed gmail-agent to /usr/local/bin/gmail-agent'",
-		"link": "mkdir -p ~/.local/bin && ln -sf $(pwd)/index.tsx ~/.local/bin/gmail-agent && chmod +x ~/.local/bin/gmail-agent && echo '✓ Linked gmail-agent to ~/.local/bin/gmail-agent'",
 		"lint": "biome check --write",
 		"npm:package": "bun scripts/generate-npm-packages.ts",
 		"postinstall": "bun scripts/copy-pglite-assets.ts",
 		"prepare": "husky",
 		"start": "bun run index.tsx",
-		"tsc": "tsc --noEmit 2>&1 | head -50",
-		"unlink": "rm -f ~/.local/bin/gmail-agent && echo '✓ Unlinked gmail-agent'"
+		"tsc": "tsc --noEmit 2>&1 | head -50"
 	},
 	"type": "module",
 	"version": "1.0.0"

@@ -1,28 +1,23 @@
 # Gmail Agent
 
-AI-powered email classification system for Gmail using Amazon Bedrock and Claude models.
+AI-powered email classification system for Gmail using AWS Bedrock.
 
 ## Features
 
-- 🔐 Secure Gmail OAuth authentication
-- 📧 Email syncing to local PGlite database
-- 🤖 AI-powered email classification using Claude via AWS Bedrock
-- 🎯 Custom classifier management
-- 📊 Grid view with live classification progress
-- ⚡ Parallel processing for fast classification
-- 🖥️ Beautiful terminal UI with Ink
+- Secure Gmail OAuth authentication
+- Email syncing to local PGlite database
+- AI-powered email classification using AWS Bedrock
+- Custom classifier management
+- Grid view with live classification progress
+- Parallel processing for fast classification
+- Beautiful terminal UI with Ink
 
 ## Installation
 
-### npm (Recommended)
-
 ```bash
+# npm
 npm install -g gmail-agent
-```
 
-Or with other package managers:
-
-```bash
 # yarn
 yarn global add gmail-agent
 
@@ -33,267 +28,157 @@ pnpm add -g gmail-agent
 bun add -g gmail-agent
 ```
 
-### Pre-built Binaries
+**Requirements:** Node.js >= 18 (or Bun)
 
-Download the latest release for your platform:
+## Setup
 
-| Platform | Architecture | Download |
-|----------|--------------|----------|
-| Linux | x64 | `gmail-agent-linux-x64` |
-| Linux | ARM64 | `gmail-agent-linux-arm64` |
-| macOS | Intel | `gmail-agent-darwin-x64` |
-| macOS | Apple Silicon | `gmail-agent-darwin-arm64` |
-| Windows | x64 | `gmail-agent-windows-x64.exe` |
+### 1. AWS Bedrock
 
-#### Linux / macOS
+You need an AWS account with access to Claude models in Bedrock.
+
+1. Go to [AWS Bedrock console](https://console.aws.amazon.com/bedrock)
+2. Navigate to "Model access" and request access to Claude models
+3. Create an IAM user with the following policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
+    }
+  ]
+}
+```
+
+4. Generate access keys for the IAM user
+
+### 2. Google Cloud
+
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com)
+2. Enable the Gmail API
+3. Create OAuth 2.0 credentials
+4. Add `http://localhost:3000/callback` to authorized redirect URIs
+
+### 3. Environment Variables
+
+Export the following or create `~/.gmail-agent/.env`:
 
 ```bash
-# Download (replace with your platform)
-curl -L -o gmail-agent https://github.com/YOUR_REPO/releases/latest/download/gmail-agent-darwin-arm64
-
-# Make executable
-chmod +x gmail-agent
-
-# Move to PATH
-sudo mv gmail-agent /usr/local/bin/
-
-# Verify installation
-gmail-agent --version
+export AMAZON_BEDROCK_REGION=us-east-1
+export AMAZON_BEDROCK_ACCESS_KEY_ID=your_access_key
+export AMAZON_BEDROCK_SECRET_ACCESS_KEY=your_secret_key
+export GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=your_client_secret
 ```
-
-#### Windows
-
-1. Download `gmail-agent-windows-x64.exe`
-2. Rename to `gmail-agent.exe`
-3. Move to a directory in your PATH (e.g., `C:\Users\<user>\bin`)
-4. Or run directly: `.\gmail-agent.exe`
-
-### Build from Source
-
-Requires [Bun](https://bun.sh) runtime.
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_REPO/gmail-agent.git
-cd gmail-agent
-
-# Install dependencies
-bun install
-
-# Build for current platform
-bun run build
-
-# Build for all platforms
-bun run build:all
-
-# Build for specific platforms
-bun run build:linux    # Linux x64 and ARM64
-bun run build:macos    # macOS Intel and Apple Silicon
-bun run build:windows  # Windows x64
-
-# Install locally (macOS/Linux)
-bun run install:local
-```
-
-The built executables will be in the `dist/` directory.
-
-### Development Setup
-
-```bash
-# Install dependencies
-bun install
-
-# Run in development mode
-bun run dev
-
-# Or link for development
-bun run link
-gmail-agent
-```
-
-## Prerequisites
-
-1. **AWS Account with Bedrock Access**
-   - Enable Amazon Bedrock in your AWS account
-   - Request access to Anthropic Claude models in Bedrock
-   - Create IAM credentials with Bedrock permissions
-
-2. **Google Cloud Project**
-   - Enable Gmail API
-   - Create OAuth 2.0 credentials
-   - Add `http://localhost:3000/callback` to authorized redirect URIs
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in your home directory (`~/.gmail-agent/.env`) or in the current working directory:
-
-```env
-# AWS Bedrock Configuration
-AMAZON_BEDROCK_REGION=us-east-1
-AMAZON_BEDROCK_ACCESS_KEY_ID=your_aws_access_key
-AMAZON_BEDROCK_SECRET_ACCESS_KEY=your_aws_secret_key
-
-# Google OAuth Credentials
-GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_client_secret
-```
-
-### AWS Bedrock Setup
-
-1. **Enable Bedrock Models**:
-   - Go to AWS Bedrock console
-   - Navigate to "Model access"
-   - Request access to:
-     - Claude 3.5 Haiku
-     - Claude 3.5 Sonnet (optional)
-     - Claude 3 Opus (optional)
-
-2. **Create IAM User**:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": [
-           "bedrock:InvokeModel",
-           "bedrock:InvokeModelWithResponseStream"
-         ],
-         "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
-       }
-     ]
-   }
-   ```
-
-3. **Generate Access Keys**:
-   - Create access key for the IAM user
-   - Add to your `.env` file
 
 ## Usage
 
-### Interactive Mode (TUI)
+### Interactive Mode (Recommended)
+
+Launch the terminal UI for a guided experience:
 
 ```bash
 gmail-agent
 ```
 
+Navigate with arrow keys, Enter to select, Esc to go back.
+
+The TUI will guide you through connecting your Gmail account, creating classifiers, syncing emails, and classifying them.
+
 ### CLI Commands
 
-```bash
-# Show help
-gmail-agent --help
+For scripting or quick actions:
 
-# Show version
+```bash
+gmail-agent --help
 gmail-agent --version
 
 # Authentication
-gmail-agent auth login      # Connect Gmail account
-gmail-agent auth logout     # Disconnect Gmail account
-gmail-agent auth status     # Show authentication status
+gmail-agent auth login
+gmail-agent auth logout
+gmail-agent auth status
 
 # Classifiers
-gmail-agent classifier add     # Add a new classifier
-gmail-agent classifier list    # List all classifiers
-gmail-agent classifier remove  # Remove a classifier
+gmail-agent classifier add
+gmail-agent classifier list
+gmail-agent classifier remove
 
-# Sync emails
-gmail-agent sync --max-emails 500
-
-# Classify emails
-gmail-agent classify --max-emails 100
+# Sync and classify
+gmail-agent sync [--max-emails 500]
+gmail-agent classify [--max-emails 100]
 ```
 
-### Main Features
+### Classifiers
 
-1. **Connect Gmail**: Authenticate with your Google account
-2. **Manage Classifiers**: Create custom email classification rules
-3. **Sync Emails**: Download emails from Gmail to local database
-4. **Classify Emails**: AI-powered classification with live progress
-5. **View Emails**: Browse and search your synced emails
+Classifiers define how emails are categorized:
 
-## Build Options
+- **Name**: Identifier for the classifier
+- **Description**: What this classifier detects
+- **Label**: Label applied to matching emails
+- **Priority**: Higher priority classifiers run first
 
-```bash
-# Build for current platform
-bun run build
-
-# Build for all platforms
-bun run build --all
-
-# Build for specific target
-bun run build -t linux-x64
-bun run build -t darwin-arm64
-bun run build -t windows-x64
-
-# Multiple targets
-bun run build -t linux-x64 -t linux-arm64
-
-# Verbose output
-bun run build --all -v
-```
-
-### Available Targets
-
-| Target | Description |
-|--------|-------------|
-| `linux-x64` | Linux x86_64 |
-| `linux-arm64` | Linux ARM64 (Raspberry Pi, etc.) |
-| `darwin-x64` | macOS Intel |
-| `darwin-arm64` | macOS Apple Silicon (M1/M2/M3) |
-| `windows-x64` | Windows x86_64 |
+Examples: "Urgent", "Newsletter", "Receipt", "Job Application"
 
 ## Troubleshooting
 
-### AWS Bedrock Issues
+| Issue | Solution |
+|-------|----------|
+| Access Denied (AWS) | Check IAM permissions for Bedrock |
+| Model Not Found | Verify Claude model access in your region |
+| OAuth Error | Ensure redirect URI matches exactly |
+| Token Expired | Run `gmail-agent auth logout` then `login` |
+| Reset Database | Delete `~/.gmail-agent/data` |
 
-- **Access Denied**: Ensure your IAM user has the correct Bedrock permissions
-- **Model Not Found**: Verify you have access to Claude models in your region
-- **Region Issues**: Some regions may not have all Claude models available
-
-### Rate Limits
-
-- The parallel classifier processes 5 emails concurrently by default
-- Adjust `MAX_CONCURRENT` in `src/ai/parallel-classifier.ts` if needed
-
-### Database Issues
-
-- Database is stored in `~/.gmail-agent/data` by default
-- Delete this directory to reset the database
+---
 
 ## Development
+
+### Setup
+
+Requires [Bun](https://bun.sh).
+
+```bash
+git clone https://github.com/anthropics/gmail-agent.git
+cd gmail-agent
+bun install
+bun run dev
+```
 
 ### Scripts
 
 | Command | Description |
 |---------|-------------|
-| `bun run dev` | Start with hot reload |
-| `bun run start` | Start production mode |
-| `bun run build` | Build for current platform |
-| `bun run build:all` | Build for all platforms |
-| `bun run lint` | Run linter |
+| `bun run dev` | Development with hot reload |
+| `bun run start` | Run directly |
+| `bun run build` | Build for distribution |
+| `bun run build:npm` | Build + package for npm |
+| `bun run lint` | Lint with Biome |
 | `bun run tsc` | Type check |
-| `bun run db:generate` | Generate database migrations |
-| `bun run db:check` | Check migration status |
+| `bun run db:generate` | Generate migrations |
 
 ### Project Structure
 
 ```
-gmail-agent/
-├── src/
-│   ├── ai/              # AI classification logic
-│   │   ├── parallel-classifier.ts
-│   │   └── provider.ts  # Bedrock configuration
-│   ├── database/        # Database schema and operations
-│   ├── gmail/           # Gmail API integration
-│   ├── ui/              # Terminal UI components
-│   │   ├── screens/     # Application screens
-│   │   └── components/  # Reusable UI components
-│   └── cli/             # CLI commands
-├── build.ts             # Cross-platform build script
-└── index.tsx            # Entry point
+src/
+├── ai/           # Classification logic (parallel-classifier.ts, provider.ts)
+├── cli/          # CLI command handlers
+├── database/     # Schema and operations
+├── gmail/        # Gmail API integration
+└── ui/           # Terminal UI (React Ink)
+    ├── components/
+    └── screens/
 ```
+
+### Contributing
+
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Make changes
+4. Commit
+5. Open a pull request
 
 ## License
 
