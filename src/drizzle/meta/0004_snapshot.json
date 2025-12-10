@@ -1,0 +1,673 @@
+{
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	},
+	"dialect": "postgresql",
+	"enums": {},
+	"id": "882b1c98-c56d-4326-a5ca-2626e18e0b2b",
+	"policies": {},
+	"prevId": "cceb62ba-6867-4769-b6ab-0aa6bac71674",
+	"roles": {},
+	"schemas": {},
+	"sequences": {},
+	"tables": {
+		"public.account": {
+			"checkConstraints": {},
+			"columns": {
+				"accessToken": {
+					"name": "accessToken",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"accessTokenExpiresAt": {
+					"name": "accessTokenExpiresAt",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"accountId": {
+					"name": "accountId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"providerId": {
+					"name": "providerId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"refreshToken": {
+					"name": "refreshToken",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"scope": {
+					"name": "scope",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {
+				"account_user_provider_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "userId",
+							"isExpression": false,
+							"nulls": "last"
+						},
+						{
+							"asc": true,
+							"expression": "providerId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "account_user_provider_idx",
+					"with": {}
+				}
+			},
+			"isRLSEnabled": false,
+			"name": "account",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		},
+		"public.classification_run": {
+			"checkConstraints": {},
+			"columns": {
+				"completedAt": {
+					"name": "completedAt",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"emailsClassified": {
+					"default": 0,
+					"name": "emailsClassified",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"emailsProcessed": {
+					"default": 0,
+					"name": "emailsProcessed",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"startedAt": {
+					"default": "now()",
+					"name": "startedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"status": {
+					"default": "'running'",
+					"name": "status",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {},
+			"isRLSEnabled": false,
+			"name": "classification_run",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		},
+		"public.classifier": {
+			"checkConstraints": {},
+			"columns": {
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"description": {
+					"name": "description",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"enabled": {
+					"default": true,
+					"name": "enabled",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "boolean"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"labelName": {
+					"name": "labelName",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"name": {
+					"name": "name",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"priority": {
+					"default": 0,
+					"name": "priority",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {
+				"classifier_user_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "userId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "classifier_user_idx",
+					"with": {}
+				}
+			},
+			"isRLSEnabled": false,
+			"name": "classifier",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		},
+		"public.email": {
+			"checkConstraints": {},
+			"columns": {
+				"body": {
+					"name": "body",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"date": {
+					"name": "date",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"from": {
+					"name": "from",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"gmailId": {
+					"name": "gmailId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"labels": {
+					"default": "'{}'",
+					"name": "labels",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text[]"
+				},
+				"snippet": {
+					"name": "snippet",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"subject": {
+					"name": "subject",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"threadId": {
+					"name": "threadId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"to": {
+					"name": "to",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {
+				"email_gmail_id_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "gmailId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "email_gmail_id_idx",
+					"with": {}
+				},
+				"email_user_date_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "userId",
+							"isExpression": false,
+							"nulls": "last"
+						},
+						{
+							"asc": true,
+							"expression": "date",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "email_user_date_idx",
+					"with": {}
+				}
+			},
+			"isRLSEnabled": false,
+			"name": "email",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {
+				"email_gmailId_unique": {
+					"columns": ["gmailId"],
+					"name": "email_gmailId_unique",
+					"nullsNotDistinct": false
+				}
+			}
+		},
+		"public.email_classification": {
+			"checkConstraints": {},
+			"columns": {
+				"classifierId": {
+					"name": "classifierId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"classifierName": {
+					"name": "classifierName",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"confidence": {
+					"name": "confidence",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "double precision"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"emailId": {
+					"name": "emailId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"gmailId": {
+					"name": "gmailId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"labelApplied": {
+					"default": false,
+					"name": "labelApplied",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "boolean"
+				},
+				"labelName": {
+					"name": "labelName",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"reasoning": {
+					"name": "reasoning",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"runId": {
+					"name": "runId",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {
+				"email_classification_email_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "emailId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "email_classification_email_idx",
+					"with": {}
+				},
+				"email_classification_gmail_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "gmailId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "email_classification_gmail_idx",
+					"with": {}
+				},
+				"email_classification_user_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "userId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "email_classification_user_idx",
+					"with": {}
+				}
+			},
+			"isRLSEnabled": false,
+			"name": "email_classification",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {
+				"email_classification_emailId_classifierId_unique": {
+					"columns": ["emailId", "classifierId"],
+					"name": "email_classification_emailId_classifierId_unique",
+					"nullsNotDistinct": false
+				}
+			}
+		},
+		"public.sync_queue": {
+			"checkConstraints": {},
+			"columns": {
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"gmailId": {
+					"name": "gmailId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"lastError": {
+					"name": "lastError",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"retryCount": {
+					"default": 0,
+					"name": "retryCount",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"status": {
+					"default": "'pending'",
+					"name": "status",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"syncedAt": {
+					"name": "syncedAt",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {
+				"sync_queue_gmail_id_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "gmailId",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "sync_queue_gmail_id_idx",
+					"with": {}
+				},
+				"sync_queue_user_status_idx": {
+					"columns": [
+						{
+							"asc": true,
+							"expression": "userId",
+							"isExpression": false,
+							"nulls": "last"
+						},
+						{
+							"asc": true,
+							"expression": "status",
+							"isExpression": false,
+							"nulls": "last"
+						}
+					],
+					"concurrently": false,
+					"isUnique": false,
+					"method": "btree",
+					"name": "sync_queue_user_status_idx",
+					"with": {}
+				}
+			},
+			"isRLSEnabled": false,
+			"name": "sync_queue",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {
+				"sync_queue_gmailId_userId_unique": {
+					"columns": ["gmailId", "userId"],
+					"name": "sync_queue_gmailId_userId_unique",
+					"nullsNotDistinct": false
+				}
+			}
+		}
+	},
+	"version": "7",
+	"views": {}
+}

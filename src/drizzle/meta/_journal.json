@@ -1,0 +1,62 @@
+{
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"breakpoints": true,
+			"idx": 0,
+			"tag": "0000_cuddly_ink",
+			"version": "7",
+			"when": 1765303914499
+		},
+		{
+			"breakpoints": true,
+			"idx": 1,
+			"tag": "0001_blue_shooting_star",
+			"version": "7",
+			"when": 1765304025140
+		},
+		{
+			"breakpoints": true,
+			"idx": 2,
+			"tag": "0002_easy_silvermane",
+			"version": "7",
+			"when": 1765304315667
+		},
+		{
+			"breakpoints": true,
+			"idx": 3,
+			"tag": "0003_early_gamora",
+			"version": "7",
+			"when": 1765308728171
+		},
+		{
+			"breakpoints": true,
+			"idx": 4,
+			"tag": "0004_nifty_crystal",
+			"version": "7",
+			"when": 1765315477379
+		},
+		{
+			"breakpoints": true,
+			"idx": 5,
+			"tag": "0005_sad_ken_ellis",
+			"version": "7",
+			"when": 1765333859959
+		},
+		{
+			"breakpoints": true,
+			"idx": 6,
+			"tag": "0006_short_the_initiative",
+			"version": "7",
+			"when": 1765335161919
+		},
+		{
+			"breakpoints": true,
+			"idx": 7,
+			"tag": "0007_new_colossus",
+			"version": "7",
+			"when": 1765380594349
+		}
+	],
+	"version": "7"
+}

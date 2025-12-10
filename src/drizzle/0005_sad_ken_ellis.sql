@@ -1,0 +1,1 @@
+ALTER TABLE "email" ADD COLUMN "archived" boolean DEFAULT false NOT NULL;

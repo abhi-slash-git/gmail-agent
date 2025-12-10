@@ -1,0 +1,238 @@
+{
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	},
+	"dialect": "postgresql",
+	"enums": {},
+	"id": "ca04c74b-4290-487e-a264-ed29c89a1af1",
+	"policies": {},
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"roles": {},
+	"schemas": {},
+	"sequences": {},
+	"tables": {
+		"public.account": {
+			"checkConstraints": {},
+			"columns": {
+				"accessToken": {
+					"name": "accessToken",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"accessTokenExpiresAt": {
+					"name": "accessTokenExpiresAt",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"accountId": {
+					"name": "accountId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"providerId": {
+					"name": "providerId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"refreshToken": {
+					"name": "refreshToken",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"scope": {
+					"name": "scope",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {},
+			"isRLSEnabled": false,
+			"name": "account",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		},
+		"public.classification_run": {
+			"checkConstraints": {},
+			"columns": {
+				"completedAt": {
+					"name": "completedAt",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"emailsClassified": {
+					"default": 0,
+					"name": "emailsClassified",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"emailsProcessed": {
+					"default": 0,
+					"name": "emailsProcessed",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"startedAt": {
+					"default": "now()",
+					"name": "startedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"status": {
+					"default": "'running'",
+					"name": "status",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {},
+			"isRLSEnabled": false,
+			"name": "classification_run",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		},
+		"public.classifier": {
+			"checkConstraints": {},
+			"columns": {
+				"createdAt": {
+					"default": "now()",
+					"name": "createdAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"description": {
+					"name": "description",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"enabled": {
+					"default": true,
+					"name": "enabled",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "boolean"
+				},
+				"id": {
+					"name": "id",
+					"notNull": true,
+					"primaryKey": true,
+					"type": "text"
+				},
+				"labelName": {
+					"name": "labelName",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"name": {
+					"name": "name",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				},
+				"priority": {
+					"default": 0,
+					"name": "priority",
+					"notNull": false,
+					"primaryKey": false,
+					"type": "bigint"
+				},
+				"updatedAt": {
+					"default": "now()",
+					"name": "updatedAt",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "timestamp"
+				},
+				"userId": {
+					"name": "userId",
+					"notNull": true,
+					"primaryKey": false,
+					"type": "text"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"foreignKeys": {},
+			"indexes": {},
+			"isRLSEnabled": false,
+			"name": "classifier",
+			"policies": {},
+			"schema": "",
+			"uniqueConstraints": {}
+		}
+	},
+	"version": "7",
+	"views": {}
+}

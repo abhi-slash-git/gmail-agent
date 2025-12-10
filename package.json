@@ -1,0 +1,60 @@
+{
+	"bin": {
+		"gmail-agent": "./index.tsx"
+	},
+	"dependencies": {
+		"@ai-sdk/amazon-bedrock": "3.0.68",
+		"@ai-sdk/anthropic": "2.0.54",
+		"@babel/core": "7.28.5",
+		"@electric-sql/pglite": "0.3.14",
+		"ai": "5.0.108",
+		"babel-plugin-react-compiler": "1.0.0",
+		"drizzle-orm": "0.45.0",
+		"googleapis": "168.0.0",
+		"ink": "6.5.1",
+		"ink-select-input": "6.2.0",
+		"ink-spinner": "5.0.0",
+		"ink-text-input": "6.0.0",
+		"open": "11.0.0",
+		"react": "19.2.1",
+		"tiny-invariant": "1.3.3",
+		"turndown": "7.2.2",
+		"uuid": "13.0.0",
+		"zod": "4.1.13"
+	},
+	"description": "AI-powered email classification CLI tool",
+	"devDependencies": {
+		"@biomejs/biome": "2.3.8",
+		"@types/babel__core": "7.20.5",
+		"@types/bun": "1.3.4",
+		"@types/node": "24.10.2",
+		"@types/react": "19.2.7",
+		"@types/turndown": "5.0.6",
+		"drizzle-kit": "0.31.8",
+		"typescript": "5.9.3"
+	},
+	"module": "index.tsx",
+	"name": "gmail-agent",
+	"private": true,
+	"scripts": {
+		"build": "bun run build.ts",
+		"build:all": "bun run build.ts --all",
+		"build:linux": "bun run build.ts -t linux-x64 -t linux-arm64",
+		"build:macos": "bun run build.ts -t darwin-x64 -t darwin-arm64",
+		"build:npm": "bun run build:all && bun run npm:package",
+		"build:windows": "bun run build.ts -t windows-x64",
+		"db:check": "bun --bun drizzle-kit check",
+		"db:generate": "bun --bun drizzle-kit generate && bun scripts/compile-migration.ts",
+		"dev": "bun --hot run index.tsx",
+		"install:local": "bun run build && sudo cp dist/gmail-agent-* /usr/local/bin/gmail-agent && echo '✓ Installed gmail-agent to /usr/local/bin/gmail-agent'",
+		"link": "mkdir -p ~/.local/bin && ln -sf $(pwd)/index.tsx ~/.local/bin/gmail-agent && chmod +x ~/.local/bin/gmail-agent && echo '✓ Linked gmail-agent to ~/.local/bin/gmail-agent'",
+		"lint": "biome check --write",
+		"npm:package": "bun scripts/generate-npm-packages.ts",
+		"postinstall": "bun scripts/copy-pglite-assets.ts",
+		"start": "bun run index.tsx",
+		"tsc": "tsc --noEmit 2>&1 | head -50",
+		"unlink": "rm -f ~/.local/bin/gmail-agent && echo '✓ Unlinked gmail-agent'"
+	},
+	"type": "module",
+	"version": "1.0.0"
+}

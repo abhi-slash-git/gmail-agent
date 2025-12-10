@@ -1,0 +1,79 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on",
+				"useSortedAttributes": "on",
+				"useSortedKeys": "on",
+				"useSortedProperties": "on"
+			}
+		},
+		"enabled": true
+	},
+	"files": {
+		"ignoreUnknown": false
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"javascript": {
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab",
+			"quoteStyle": "double",
+			"trailingCommas": "none"
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"complexity": {
+				"useLiteralKeys": {
+					"fix": "safe",
+					"level": "warn"
+				}
+			},
+			"correctness": {
+				"noUnusedFunctionParameters": {
+					"fix": "safe",
+					"level": "warn"
+				},
+				"noUnusedImports": {
+					"fix": "safe",
+					"level": "warn"
+				},
+				"noUnusedVariables": {
+					"fix": "safe",
+					"level": "warn"
+				}
+			},
+			"nursery": {
+				"noFloatingPromises": "error",
+				"noMisusedPromises": "error"
+			},
+			"recommended": true,
+			"style": {
+				"noNonNullAssertion": "error",
+				"useNodejsImportProtocol": {
+					"fix": "safe",
+					"level": "warn"
+				},
+				"useTemplate": {
+					"fix": "safe",
+					"level": "warn"
+				}
+			},
+			"suspicious": {
+				"useAwait": "error"
+			}
+		}
+	},
+	"vcs": {
+		"clientKind": "git",
+		"defaultBranch": "main",
+		"enabled": true,
+		"useIgnoreFile": true
+	}
+}
