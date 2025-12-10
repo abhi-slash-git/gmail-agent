@@ -45,6 +45,11 @@
 		"postinstall": "bun scripts/copy-pglite-assets.ts",
 		"prepare": "husky",
 		"start": "bun run index.tsx",
+		"test": "bun test src",
+		"test:all": "bun run test && bun run test:isolated:pglite && bun run test:isolated:connection",
+		"test:coverage": "bun test --coverage src",
+		"test:isolated:connection": "bun test tests-isolated/connection.test.ts",
+		"test:isolated:pglite": "bun test tests-isolated/pglite-wrapper.test.ts",
 		"tsc": "tsgo --noEmit 2>&1 | head -50"
 	},
 	"type": "module",

@@ -51,6 +51,9 @@ export function isRateLimitError(error: unknown): boolean {
 	}
 
 	// Check for HTTP status codes (common in API client errors)
+	if (error == null || typeof error !== "object") {
+		return false;
+	}
 	const err = error as { code?: number; status?: number; statusCode?: number };
 	const code = err.code ?? err.status ?? err.statusCode;
 	if (code && RATE_LIMIT_CODES.includes(code)) {

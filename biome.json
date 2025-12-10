@@ -55,7 +55,7 @@
 			},
 			"recommended": true,
 			"style": {
-				"noNonNullAssertion": "error",
+				"noNonNullAssertion": "off",
 				"useNodejsImportProtocol": {
 					"fix": "safe",
 					"level": "warn"
