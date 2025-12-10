@@ -174,11 +174,7 @@ src/
 
 ### Contributing
 
-1. Fork the repository
-2. Create a branch: `git checkout -b feature/my-feature`
-3. Make changes
-4. Commit
-5. Open a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 

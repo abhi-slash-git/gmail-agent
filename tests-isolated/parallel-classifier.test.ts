@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { Classifier } from "../database/connection";
+import type { Classifier } from "../src/database/connection";
 
 // Mock the AI SDK - using any to allow flexible mock implementations
 // biome-ignore lint/suspicious/noExplicitAny: mock needs flexible typing
@@ -15,7 +15,7 @@ mock.module("ai", () => ({
 }));
 
 // Mock the provider
-mock.module("./provider", () => ({
+mock.module("../src/ai/provider", () => ({
 	getModel: mock(() => "mock-model")
 }));
 
@@ -35,7 +35,7 @@ const mockWithRetry = mock(
 
 const mockRecordError = mock(() => {});
 
-mock.module("../utils/retry.js", () => ({
+mock.module("../src/utils/retry.js", () => ({
 	AdaptiveRateLimiter: class {
 		getConcurrency = () => 30;
 		recordError = mockRecordError;
@@ -83,20 +83,20 @@ const createTestClassifier = (
 
 describe("classifyEmailsParallel", () => {
 	test("returns empty array for empty inputs", async () => {
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const results = await classifyEmailsParallel([], []);
 		expect(results).toEqual([]);
 	});
 
 	test("returns empty array when no emails", async () => {
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const classifiers = [createTestClassifier("clf_1", "Work", "Work")];
 		const results = await classifyEmailsParallel([], classifiers);
 		expect(results).toEqual([]);
 	});
 
 	test("returns empty array when no classifiers", async () => {
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test Email")];
 		const results = await classifyEmailsParallel(emails, []);
 		expect(results).toEqual([]);
@@ -110,7 +110,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Project Update")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -130,7 +130,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Random Email")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -149,7 +149,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -173,7 +173,7 @@ describe("classifyEmailsParallel", () => {
 			progress: number;
 		}> = [];
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -203,7 +203,7 @@ describe("classifyEmailsParallel", () => {
 
 		const batchUpdates: Array<{ completed: number; total: number }> = [];
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [
 			createTestEmail("email1", "Test 1"),
 			createTestEmail("email2", "Test 2")
@@ -228,7 +228,7 @@ describe("classifyEmailsParallel", () => {
 			throw new Error("API error");
 		});
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -254,7 +254,7 @@ describe("classifyEmailsParallel", () => {
 			});
 		});
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -284,7 +284,7 @@ describe("classifyEmailsParallel", () => {
 			});
 		});
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [
 			createTestEmail("email1", "Test 1"),
 			createTestEmail("email2", "Test 2"),
@@ -306,7 +306,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -323,7 +323,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -361,7 +361,7 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import("./parallel-classifier");
+		const { classifyEmailsParallel } = await import("../src/ai/parallel-classifier");
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
