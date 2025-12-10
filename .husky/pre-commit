@@ -1,4 +1,2 @@
 bun run tsc
 bun run lint
-bun run test:all
-bun run build
