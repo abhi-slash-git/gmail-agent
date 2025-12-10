@@ -3,6 +3,20 @@ import { z } from "zod";
 import { withRetry } from "../utils/retry.js";
 import { getModel } from "./provider.js";
 
+// Dependencies interface for dependency injection (useful for testing)
+export interface ClassifierGeneratorDependencies {
+	generateObject: typeof generateObject;
+	getModel: typeof getModel;
+	withRetry: typeof withRetry;
+}
+
+// Default dependencies using actual implementations
+const defaultDependencies: ClassifierGeneratorDependencies = {
+	generateObject,
+	getModel,
+	withRetry
+};
+
 const classifierSchema = z.object({
 	description: z
 		.string()
@@ -29,12 +43,13 @@ const classifierSchema = z.object({
 export type GeneratedClassifier = z.infer<typeof classifierSchema>;
 
 export async function generateClassifierFromPrompt(
-	prompt: string
+	prompt: string,
+	deps: ClassifierGeneratorDependencies = defaultDependencies
 ): Promise<GeneratedClassifier> {
-	const { result } = await withRetry(
+	const { result } = await deps.withRetry(
 		() =>
-			generateObject({
-				model: getModel("haiku"),
+			deps.generateObject({
+				model: deps.getModel("haiku"),
 				prompt: `You are an email classification expert. Based on the user's request, generate a classifier configuration for automatically categorizing emails.
 
 User request: "${prompt}"
