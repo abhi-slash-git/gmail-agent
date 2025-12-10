@@ -50,6 +50,30 @@ export interface ParallelClassifyOptions {
 	userContext?: UserContext;
 }
 
+// Dependencies interface for dependency injection (useful for testing)
+export interface ClassifierDependencies {
+	generateObject: typeof generateObject;
+	getModel: typeof getModel;
+	withRetry: typeof withRetry;
+	isRateLimitError: typeof isRateLimitError;
+	createRateLimiter: () => AdaptiveRateLimiter;
+}
+
+// Default dependencies using actual implementations
+const defaultDependencies: ClassifierDependencies = {
+	createRateLimiter: () =>
+		new AdaptiveRateLimiter({
+			initialConcurrency: MAX_CONCURRENT,
+			maxConcurrency: MAX_CONCURRENT,
+			minConcurrency: MIN_CONCURRENT,
+			successThreshold: 10
+		}),
+	generateObject,
+	getModel,
+	isRateLimitError,
+	withRetry
+};
+
 // Simplified schema - just return the best match
 const ClassificationSchema = z.object({
 	classifierId: z
@@ -72,6 +96,7 @@ async function classifyEmail(
 	classifierDescriptions: string,
 	classifierIds: Set<string>,
 	rateLimiter: AdaptiveRateLimiter,
+	deps: ClassifierDependencies,
 	onProgress?: (progress: EmailProgress) => void,
 	userContext?: UserContext
 ): Promise<ClassificationResult> {
@@ -114,9 +139,9 @@ Use this context to better understand which emails are addressed TO the user vs 
 			: "";
 
 		// Create classification with retry and timeout
-		const { result, attempts } = await withRetry(
+		const { result, attempts } = await deps.withRetry(
 			async () => {
-				const classificationPromise = await generateObject({
+				const classificationPromise = await deps.generateObject({
 					messages: [
 						{
 							content: `Classify this email into one of the provided categories. Pick the BEST matching classifier from the list below, or return null if none match well.
@@ -135,7 +160,7 @@ Instructions:
 							role: "user"
 						}
 					],
-					model: getModel("haiku"),
+					model: deps.getModel("haiku"),
 					schema: ClassificationSchema,
 					system:
 						"You are an email classifier. Analyze the email and return the best matching classifierId from the provided list, or null if no good match. Only use exact classifier IDs from the list. Be thoughtful about the email's purpose and relevance to each classifier."
@@ -153,7 +178,7 @@ Instructions:
 			{
 				maxRetries: 3,
 				onRetry: (_attempt, _delayMs, error) => {
-					const rateLimit = isRateLimitError(error);
+					const rateLimit = deps.isRateLimitError(error);
 					rateLimiter.recordError(rateLimit);
 				}
 			}
@@ -215,7 +240,8 @@ Instructions:
 export async function classifyEmailsParallel(
 	emails: EmailInput[],
 	classifiers: Classifier[],
-	options?: ParallelClassifyOptions
+	options?: ParallelClassifyOptions,
+	deps: ClassifierDependencies = defaultDependencies
 ): Promise<ClassificationResult[]> {
 	if (emails.length === 0 || classifiers.length === 0) {
 		return [];
@@ -232,12 +258,7 @@ export async function classifyEmailsParallel(
 	const classifierIds = new Set(classifiers.map((c) => c.id));
 
 	// Create adaptive rate limiter
-	const rateLimiter = new AdaptiveRateLimiter({
-		initialConcurrency: MAX_CONCURRENT,
-		maxConcurrency: MAX_CONCURRENT,
-		minConcurrency: MIN_CONCURRENT,
-		successThreshold: 10 // Increase concurrency after 10 consecutive successes
-	});
+	const rateLimiter = deps.createRateLimiter();
 
 	// Initialize progress for all emails
 	emails.forEach((email) => {
@@ -269,6 +290,7 @@ export async function classifyEmailsParallel(
 				classifierDescriptions,
 				classifierIds,
 				rateLimiter,
+				deps,
 				options?.onEmailProgress,
 				options?.userContext
 			).then((result) => {
