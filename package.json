@@ -33,10 +33,12 @@
 	},
 	"module": "index.tsx",
 	"name": "gmail-agent",
+	"packageManager": "bun@1.3.4",
 	"private": true,
 	"scripts": {
 		"build": "bun scripts/build-js.ts",
 		"build:npm": "bun run build && bun run npm:package",
+		"check:version": "bun scripts/check-version-bump.ts \"$@\"",
 		"db:check": "bun --bun drizzle-kit check",
 		"db:generate": "bun --bun drizzle-kit generate && bun scripts/compile-migration.ts",
 		"dev": "bun --hot run index.tsx",
