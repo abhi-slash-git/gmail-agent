@@ -1,40 +1,59 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import {
+	type ClassifierGeneratorDependencies,
+	generateClassifierFromPrompt
+} from "./classifier-generator";
 
-// Mock the AI SDK
-mock.module("ai", () => ({
-	generateObject: mock(async () => ({
-		object: {
-			description:
-				"Job-related emails including applications, recruiter outreach, and interview scheduling",
-			labelName: "Jobs",
-			name: "Jobs",
-			priority: 7
-		}
-	}))
-}));
+// Mock dependencies factory - no mock.module needed
+function createMockDeps(overrides?: {
+	generatedClassifier?: {
+		name: string;
+		description: string;
+		labelName: string;
+		priority: number;
+	};
+	getModelCalls?: string[];
+	withRetryCalls?: Array<{ maxRetries?: number }>;
+}): ClassifierGeneratorDependencies {
+	const getModelCalls = overrides?.getModelCalls ?? [];
+	const withRetryCalls = overrides?.withRetryCalls ?? [];
 
-// Mock the provider
-mock.module("./provider.js", () => ({
-	getModel: mock(() => "mock-model")
-}));
-
-// Mock retry
-mock.module("../utils/retry.js", () => ({
-	withRetry: mock(async (fn: () => Promise<unknown>) => ({
-		attempts: 1,
-		result: await fn(),
-		totalDelayMs: 0
-	}))
-}));
+	return {
+		generateObject: (() =>
+			Promise.resolve({
+				object: overrides?.generatedClassifier ?? {
+					description:
+						"Job-related emails including applications, recruiter outreach, and interview scheduling",
+					labelName: "Jobs",
+					name: "Jobs",
+					priority: 7
+				}
+			})) as unknown as ClassifierGeneratorDependencies["generateObject"],
+		getModel: ((model: string) => {
+			getModelCalls.push(model);
+			return "mock-model";
+		}) as unknown as ClassifierGeneratorDependencies["getModel"],
+		withRetry: (async (
+			fn: () => Promise<unknown>,
+			options?: { maxRetries?: number }
+		) => {
+			withRetryCalls.push({ maxRetries: options?.maxRetries });
+			return {
+				attempts: 1,
+				result: await fn(),
+				totalDelayMs: 0
+			};
+		}) as unknown as ClassifierGeneratorDependencies["withRetry"]
+	};
+}
 
 describe("generateClassifierFromPrompt", () => {
 	test("generates classifier from natural language prompt", async () => {
-		const { generateClassifierFromPrompt } = await import(
-			"./classifier-generator"
-		);
+		const mockDeps = createMockDeps();
 
 		const result = await generateClassifierFromPrompt(
-			"I want to categorize job-related emails"
+			"I want to categorize job-related emails",
+			mockDeps
 		);
 
 		expect(result.name).toBe("Jobs");
@@ -44,11 +63,9 @@ describe("generateClassifierFromPrompt", () => {
 	});
 
 	test("returns properly typed GeneratedClassifier", async () => {
-		const { generateClassifierFromPrompt } = await import(
-			"./classifier-generator"
-		);
+		const mockDeps = createMockDeps();
 
-		const result = await generateClassifierFromPrompt("test prompt");
+		const result = await generateClassifierFromPrompt("test prompt", mockDeps);
 
 		expect(typeof result.name).toBe("string");
 		expect(typeof result.description).toBe("string");
@@ -57,26 +74,41 @@ describe("generateClassifierFromPrompt", () => {
 	});
 
 	test("uses haiku model for generation", async () => {
-		const { getModel } = await import("./provider.js");
-		const { generateClassifierFromPrompt } = await import(
-			"./classifier-generator"
-		);
+		const getModelCalls: string[] = [];
+		const mockDeps = createMockDeps({ getModelCalls });
 
-		await generateClassifierFromPrompt("test");
+		await generateClassifierFromPrompt("test", mockDeps);
 
-		expect(getModel).toHaveBeenCalledWith("haiku");
+		expect(getModelCalls).toContain("haiku");
 	});
 
 	test("uses retry with maxRetries 3", async () => {
-		const { withRetry } = await import("../utils/retry.js");
-		const { generateClassifierFromPrompt } = await import(
-			"./classifier-generator"
+		const withRetryCalls: Array<{ maxRetries?: number }> = [];
+		const mockDeps = createMockDeps({ withRetryCalls });
+
+		await generateClassifierFromPrompt("test", mockDeps);
+
+		expect(withRetryCalls).toHaveLength(1);
+		expect(withRetryCalls[0]?.maxRetries).toBe(3);
+	});
+
+	test("passes different classifier data correctly", async () => {
+		const mockDeps = createMockDeps({
+			generatedClassifier: {
+				description: "Newsletter emails from various sources",
+				labelName: "Newsletters",
+				name: "Newsletters",
+				priority: 5
+			}
+		});
+
+		const result = await generateClassifierFromPrompt(
+			"categorize newsletters",
+			mockDeps
 		);
 
-		await generateClassifierFromPrompt("test");
-
-		expect(withRetry).toHaveBeenCalledWith(expect.any(Function), {
-			maxRetries: 3
-		});
+		expect(result.name).toBe("Newsletters");
+		expect(result.labelName).toBe("Newsletters");
+		expect(result.priority).toBe(5);
 	});
 });

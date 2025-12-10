@@ -35,6 +35,13 @@ mock.module("googleapis", () => ({
 
 // Mock the retry module
 mock.module("../utils/retry.js", () => ({
+	AdaptiveRateLimiter: class {
+		getConcurrency = () => 30;
+		recordError = () => {};
+		recordSuccess = () => {};
+		reset = () => {};
+	},
+	isRateLimitError: () => false,
 	withRetry: mock(async (fn: () => Promise<unknown>) => ({
 		attempts: 1,
 		result: await fn(),
