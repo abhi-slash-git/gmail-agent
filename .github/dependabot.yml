@@ -6,6 +6,8 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
     groups:
       ai-sdk:
         patterns:
@@ -23,13 +25,27 @@ updates:
         patterns:
           - "drizzle-orm"
           - "drizzle-kit"
+      googleapis:
+        patterns:
+          - "googleapis"
+      types:
+        patterns:
+          - "@types/*"
+        exclude-patterns:
+          - "@types/react"
       dev-dependencies:
         dependency-type: "development"
         exclude-patterns:
-          - "@types/react"
+          - "@types/*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
