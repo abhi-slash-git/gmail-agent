@@ -31,6 +31,7 @@
 		"@types/react": "19.2.7",
 		"@types/turndown": "5.0.6",
 		"drizzle-kit": "0.31.8",
+		"husky": "9.1.7",
 		"typescript": "5.9.3"
 	},
 	"module": "index.tsx",
@@ -51,6 +52,7 @@
 		"lint": "biome check --write",
 		"npm:package": "bun scripts/generate-npm-packages.ts",
 		"postinstall": "bun scripts/copy-pglite-assets.ts",
+		"prepare": "husky",
 		"start": "bun run index.tsx",
 		"tsc": "tsc --noEmit 2>&1 | head -50",
 		"unlink": "rm -f ~/.local/bin/gmail-agent && echo '✓ Unlinked gmail-agent'"
