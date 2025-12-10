@@ -1,56 +1,65 @@
-import { describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { join } from "node:path";
 import type { Classifier } from "../src/database/connection";
 
 // Get absolute paths for mocking
 const srcDir = join(import.meta.dir, "../src");
+const retryModulePath = join(srcDir, "utils/retry.js");
+const providerModulePath = join(srcDir, "ai/provider");
 
-// Mock the AI SDK - using any to allow flexible mock implementations
 // biome-ignore lint/suspicious/noExplicitAny: mock needs flexible typing
-const mockGenerateObject = mock(async (_opts?: any) => ({
-	object: {
-		classifierId: "clf_work" as string | null,
-		confidence: 0.9
-	}
-}));
+let mockGenerateObject: ReturnType<typeof mock<any>>;
+let mockWithRetry: ReturnType<typeof mock>;
+let mockRecordError: ReturnType<typeof mock>;
 
-mock.module("ai", () => ({
-	generateObject: mockGenerateObject
-}));
-
-// Mock the provider using absolute path
-mock.module(join(srcDir, "ai/provider"), () => ({
-	getModel: mock(() => "mock-model")
-}));
-
-// Mock the retry module
-const mockWithRetry = mock(
-	async (
-		fn: () => Promise<unknown>,
-		_options?: {
-			onRetry?: (attempt: number, delayMs: number, error: Error) => void;
+// Setup mocks before any tests run - this runs at module load time
+function setupMocks() {
+	// biome-ignore lint/suspicious/noExplicitAny: mock needs flexible typing
+	mockGenerateObject = mock(async (_opts?: any) => ({
+		object: {
+			classifierId: "clf_work" as string | null,
+			confidence: 0.9
 		}
-	) => ({
-		attempts: 1,
-		result: await fn(),
-		totalDelayMs: 0
-	})
-);
+	}));
 
-const mockRecordError = mock(() => {});
+	mockWithRetry = mock(
+		async (
+			fn: () => Promise<unknown>,
+			_options?: {
+				onRetry?: (attempt: number, delayMs: number, error: Error) => void;
+			}
+		) => ({
+			attempts: 1,
+			result: await fn(),
+			totalDelayMs: 0
+		})
+	);
 
-// Mock using absolute path
-mock.module(join(srcDir, "utils/retry.js"), () => ({
-	AdaptiveRateLimiter: class {
-		getConcurrency = () => 30;
-		recordError = mockRecordError;
-		recordSuccess = mock(() => {});
-		reset = mock(() => {});
-	},
-	isRateLimitError: (error: unknown) =>
-		error instanceof Error && error.message.includes("rate limit"),
-	withRetry: mockWithRetry
-}));
+	mockRecordError = mock(() => {});
+
+	mock.module("ai", () => ({
+		generateObject: mockGenerateObject
+	}));
+
+	mock.module(providerModulePath, () => ({
+		getModel: mock(() => "mock-model")
+	}));
+
+	mock.module(retryModulePath, () => ({
+		AdaptiveRateLimiter: class {
+			getConcurrency = () => 30;
+			recordError = mockRecordError;
+			recordSuccess = mock(() => {});
+			reset = mock(() => {});
+		},
+		isRateLimitError: (error: unknown) =>
+			error instanceof Error && error.message.includes("rate limit"),
+		withRetry: mockWithRetry
+	}));
+}
+
+// Initialize mocks immediately at module load
+setupMocks();
 
 interface EmailInput {
 	id: string;
@@ -86,28 +95,38 @@ const createTestClassifier = (
 	userId: "test_user"
 });
 
+// Cache the module import
+let classifyEmailsParallel: typeof import("../src/ai/parallel-classifier").classifyEmailsParallel;
+
 describe("classifyEmailsParallel", () => {
+	beforeEach(async () => {
+		// Reset mock implementations to default
+		mockGenerateObject.mockImplementation(async () => ({
+			object: {
+				classifierId: "clf_work" as string | null,
+				confidence: 0.9
+			}
+		}));
+
+		// Import the module (will be cached after first import)
+		if (!classifyEmailsParallel) {
+			const mod = await import("../src/ai/parallel-classifier");
+			classifyEmailsParallel = mod.classifyEmailsParallel;
+		}
+	});
+
 	test("returns empty array for empty inputs", async () => {
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const results = await classifyEmailsParallel([], []);
 		expect(results).toEqual([]);
 	});
 
 	test("returns empty array when no emails", async () => {
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const classifiers = [createTestClassifier("clf_1", "Work", "Work")];
 		const results = await classifyEmailsParallel([], classifiers);
 		expect(results).toEqual([]);
 	});
 
 	test("returns empty array when no classifiers", async () => {
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test Email")];
 		const results = await classifyEmailsParallel(emails, []);
 		expect(results).toEqual([]);
@@ -121,9 +140,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Project Update")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -143,9 +159,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Random Email")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -164,9 +177,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -190,9 +200,6 @@ describe("classifyEmailsParallel", () => {
 			progress: number;
 		}> = [];
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -222,9 +229,6 @@ describe("classifyEmailsParallel", () => {
 
 		const batchUpdates: Array<{ completed: number; total: number }> = [];
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [
 			createTestEmail("email1", "Test 1"),
 			createTestEmail("email2", "Test 2")
@@ -249,9 +253,6 @@ describe("classifyEmailsParallel", () => {
 			throw new Error("API error");
 		});
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -277,9 +278,6 @@ describe("classifyEmailsParallel", () => {
 			});
 		});
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -309,9 +307,6 @@ describe("classifyEmailsParallel", () => {
 			});
 		});
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [
 			createTestEmail("email1", "Test 1"),
 			createTestEmail("email2", "Test 2"),
@@ -333,9 +328,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -352,9 +344,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
@@ -371,9 +360,6 @@ describe("classifyEmailsParallel", () => {
 			}
 		}));
 
-		const { classifyEmailsParallel } = await import(
-			"../src/ai/parallel-classifier"
-		);
 		const emails = [createTestEmail("email1", "Test")];
 		const classifiers = [createTestClassifier("clf_work", "Work", "Work")];
 
