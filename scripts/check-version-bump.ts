@@ -18,11 +18,7 @@ function getLocalVersion(): string {
 }
 
 function getRemoteVersion(remote: string): string | null {
-	const result = Bun.spawnSync([
-		"git",
-		"show",
-		`${remote}/main:package.json`
-	]);
+	const result = Bun.spawnSync(["git", "show", `${remote}/main:package.json`]);
 
 	if (result.exitCode !== 0) {
 		return null;
