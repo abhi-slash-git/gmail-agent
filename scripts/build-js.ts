@@ -22,7 +22,9 @@ async function main() {
 	const outdir = join(process.cwd(), "dist");
 
 	// Clean previous build
-	const outdirExists = await access(outdir).then(() => true).catch(() => false);
+	const outdirExists = await access(outdir)
+		.then(() => true)
+		.catch(() => false);
 	if (outdirExists) {
 		if (verbose) console.log("Cleaning previous build...");
 		await rm(outdir, { force: true, recursive: true });
