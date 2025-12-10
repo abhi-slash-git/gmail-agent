@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      should_publish: ${{ steps.should_publish.outputs.value }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -69,3 +71,64 @@ jobs:
             --title "$TAG" \
             --generate-notes
           echo "Created release: $TAG"
+
+      - name: Set publish output
+        id: should_publish
+        if: steps.version.outputs.changed == 'true' && steps.tag_check.outputs.exists == 'false'
+        run: echo "value=true" >> $GITHUB_OUTPUT
+
+  publish:
+    needs: auto-tag
+    if: needs.auto-tag.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun run test:all
+
+      - name: Build
+        run: bun run build
+
+      - name: Generate npm package
+        run: bun run npm:package
+
+      - name: Verify package
+        run: |
+          cd npm/gmail-agent
+          npm pack --dry-run
+          echo "Package contents:"
+          tar -tzf $(npm pack) | head -20
+
+      - name: Publish to npm
+        run: |
+          cd npm/gmail-agent
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
