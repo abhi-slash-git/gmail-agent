@@ -28,7 +28,6 @@ export function htmlToText(html: string): string {
 			.replace(/<[^>]+>/g, " ")
 			// Decode common named entities
 			.replace(/&nbsp;/gi, " ")
-			.replace(/&amp;/gi, "&")
 			.replace(/&lt;/gi, "<")
 			.replace(/&gt;/gi, ">")
 			.replace(/&quot;/gi, '"')
@@ -44,6 +43,7 @@ export function htmlToText(html: string): string {
 			.replace(/&copy;/gi, "©")
 			.replace(/&reg;/gi, "®")
 			.replace(/&trade;/gi, "™")
+			.replace(/&amp;/gi, "&")
 			// Decode numeric entities (decimal)
 			.replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
 			// Decode numeric entities (hex)
