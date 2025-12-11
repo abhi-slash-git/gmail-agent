@@ -50,7 +50,11 @@ async function login() {
 	try {
 		const tokens = await startOAuthFlow({
 			clientId: env.GOOGLE_CLIENT_ID,
-			clientSecret: env.GOOGLE_CLIENT_SECRET
+			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			onAuthUrl: (url) => {
+				console.log("Opening browser for Google authorization...");
+				console.log(`If browser doesn't open, visit:\n${url}\n`);
+			}
 		});
 
 		await saveGmailTokens(db, env.USER_ID, {

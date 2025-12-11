@@ -30,6 +30,7 @@ export const account = pgTable(
 		accessToken: text(),
 		accessTokenExpiresAt: timestamp({ mode: "date" }),
 		accountId: text().notNull(),
+		defaultClassifiersSeeded: boolean().default(false).notNull(),
 		email: text(),
 		name: text(),
 		providerId: text().notNull(),
@@ -54,6 +55,9 @@ export const classifier = pgTable(
 			.notNull()
 			.$default(() => `clf_${v7()}`),
 		...baseDate,
+		accountId: text()
+			.notNull()
+			.references(() => account.id, { onDelete: "cascade" }),
 		description: text().notNull(),
 		enabled: boolean().default(true).notNull(),
 		labelName: text().notNull(),
@@ -74,6 +78,9 @@ export const classificationRun = pgTable("classification_run", {
 		.notNull()
 		.$default(() => `clr_${v7()}`),
 	...baseDate,
+	accountId: text()
+		.notNull()
+		.references(() => account.id, { onDelete: "cascade" }),
 	completedAt: timestamp({ mode: "date" }),
 	emailsClassified: bigint({ mode: "number" }).notNull().default(0),
 	emailsProcessed: bigint({ mode: "number" }).notNull().default(0),
@@ -94,6 +101,9 @@ export const email = pgTable(
 			.notNull()
 			.$default(() => `eml_${v7()}`),
 		...baseDate,
+		accountId: text()
+			.notNull()
+			.references(() => account.id, { onDelete: "cascade" }),
 		archived: boolean().default(false).notNull(),
 		body: text().notNull(),
 		date: timestamp({ mode: "date" }).notNull(),
@@ -125,6 +135,9 @@ export const emailClassification = pgTable(
 			.notNull()
 			.$default(() => `ecl_${v7()}`),
 		...baseDate,
+		accountId: text()
+			.notNull()
+			.references(() => account.id, { onDelete: "cascade" }),
 		classifierId: text().notNull(),
 		classifierName: text().notNull(),
 		confidence: doublePrecision().notNull(),
@@ -156,6 +169,9 @@ export const syncQueue = pgTable(
 			.notNull()
 			.$default(() => `sqe_${v7()}`),
 		...baseDate,
+		accountId: text()
+			.notNull()
+			.references(() => account.id, { onDelete: "cascade" }),
 		gmailId: text().notNull(),
 		lastError: text(),
 		retryCount: bigint({ mode: "number" }).notNull().default(0),

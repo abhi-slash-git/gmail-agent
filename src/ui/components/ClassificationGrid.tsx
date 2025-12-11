@@ -171,7 +171,7 @@ export function ClassificationGrid({
 
 			{/* Scroll indicator and instructions */}
 			<Box justifyContent="space-between" marginTop={1}>
-				<Text dimColor>↑/↓ to scroll • Esc to continue in background</Text>
+				<Text dimColor>↑/↓ to scroll • esc to continue in background</Text>
 				{totalRows > visibleRows && (
 					<Text dimColor>
 						{String(scrollOffset + 1)}-

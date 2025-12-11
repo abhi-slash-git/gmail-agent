@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import {
 	deleteGmailTokens,
 	getGmailTokens,
-	saveGmailTokens
+	saveGmailTokens,
+	seedDefaultClassifiers
 } from "../../database/connection.js";
 import { getEnv } from "../../env.js";
 import { startOAuthFlow } from "../../gmail/oauth.js";
@@ -19,6 +20,7 @@ export function AuthScreen() {
 	const [state, setState] = useState<AuthState>("idle");
 	const [error, setError] = useState<string | null>(null);
 	const [tokenExpiry, setTokenExpiry] = useState<Date | null>(null);
+	const [authUrl, setAuthUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		const checkToken = async () => {
@@ -34,12 +36,14 @@ export function AuthScreen() {
 	const handleConnect = async () => {
 		setState("connecting");
 		setError(null);
+		setAuthUrl(null);
 
 		try {
 			const env = getEnv();
 			const tokens = await startOAuthFlow({
 				clientId: env.GOOGLE_CLIENT_ID,
-				clientSecret: env.GOOGLE_CLIENT_SECRET
+				clientSecret: env.GOOGLE_CLIENT_SECRET,
+				onAuthUrl: (url) => setAuthUrl(url)
 			});
 
 			await saveGmailTokens(db, env.USER_ID, {
@@ -47,6 +51,9 @@ export function AuthScreen() {
 				expiresAt: tokens.expiresAt,
 				refreshToken: tokens.refreshToken
 			});
+
+			// Seed default classifiers for new users
+			await seedDefaultClassifiers(db, env.USER_ID);
 
 			await refreshAuth();
 			setState("success");
@@ -114,8 +121,14 @@ export function AuthScreen() {
 			</Box>
 
 			{state === "connecting" && (
-				<Box marginBottom={1}>
+				<Box flexDirection="column" marginBottom={1}>
 					<Spinner label="Opening browser for authentication..." />
+					{authUrl && (
+						<Box flexDirection="column" marginTop={1}>
+							<Text dimColor>If browser doesn't open, visit:</Text>
+							<Text color="cyan">{authUrl}</Text>
+						</Box>
+					)}
 				</Box>
 			)}
 
@@ -136,7 +149,7 @@ export function AuthScreen() {
 			)}
 
 			<Box marginTop={1}>
-				<Text dimColor>Press Esc to go back</Text>
+				<Text dimColor>Press esc to go back</Text>
 			</Box>
 		</Box>
 	);

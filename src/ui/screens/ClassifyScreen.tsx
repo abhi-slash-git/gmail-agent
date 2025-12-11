@@ -11,6 +11,7 @@ import {
 	createClassificationRun,
 	findClassifiersByUserId,
 	findUnclassifiedEmails,
+	getAccountId,
 	getUserProfile,
 	NO_MATCH_CLASSIFIER_ID,
 	NO_MATCH_CLASSIFIER_NAME,
@@ -43,9 +44,9 @@ export function ClassifyScreen() {
 	const [preparing, setPreparing] = useState("");
 	const [_classifiedCount, setClassifiedCount] = useState(0);
 
-	useInput((input, key) => {
+	useInput((_input, key) => {
 		if (state === "idle" || state === "success" || state === "error") {
-			if (key.escape || input === "b") {
+			if (key.escape) {
 				setScreen("home");
 			}
 		}
@@ -108,8 +109,15 @@ export function ClassifyScreen() {
 				return;
 			}
 
+			// Get accountId for foreign key
+			const accountId = await getAccountId(db, env.USER_ID);
+			if (!accountId) {
+				throw new Error("No account found. Please connect Gmail first.");
+			}
+
 			// Create run record
 			const run = await createClassificationRun(db, {
+				accountId,
 				status: "running",
 				userId: env.USER_ID
 			});
@@ -204,6 +212,7 @@ export function ClassifyScreen() {
 					if (classifier) {
 						// Save classification to database
 						await upsertEmailClassification(db, {
+							accountId,
 							classifierId: classifier.id,
 							classifierName: classifier.name,
 							confidence: res.confidence,
@@ -221,6 +230,7 @@ export function ClassifyScreen() {
 				} else {
 					// Save "no match" record to prevent re-processing
 					await upsertEmailClassification(db, {
+						accountId,
 						classifierId: NO_MATCH_CLASSIFIER_ID,
 						classifierName: NO_MATCH_CLASSIFIER_NAME,
 						confidence: 0,
@@ -316,7 +326,7 @@ export function ClassifyScreen() {
 				<Header title="Classify Emails" />
 				<Text color="yellow">Please connect Gmail first.</Text>
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -433,7 +443,7 @@ export function ClassifyScreen() {
 				</Box>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -447,7 +457,7 @@ export function ClassifyScreen() {
 					<Text color="red">Error: {error}</Text>
 				</Box>
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -487,7 +497,7 @@ export function ClassifyScreen() {
 			/>
 
 			<Box marginTop={1}>
-				<Text dimColor>Press b or Esc to go back</Text>
+				<Text dimColor>Press esc to go back</Text>
 			</Box>
 		</Box>
 	);

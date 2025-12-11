@@ -59,6 +59,7 @@ let sql: PGlite;
 let db: Database;
 
 const TEST_USER_ID = "test_user";
+const TEST_ACCOUNT_ID = "test_account";
 
 beforeAll(async () => {
 	// Create in-memory PGlite instance for testing
@@ -74,6 +75,7 @@ beforeAll(async () => {
 			"accessToken" TEXT,
 			"accessTokenExpiresAt" TIMESTAMP,
 			"accountId" TEXT NOT NULL,
+			"defaultClassifiersSeeded" BOOLEAN DEFAULT false NOT NULL,
 			email TEXT,
 			name TEXT,
 			"providerId" TEXT NOT NULL,
@@ -88,6 +90,7 @@ beforeAll(async () => {
 			id TEXT PRIMARY KEY NOT NULL,
 			"createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
 			"updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
+			"accountId" TEXT NOT NULL,
 			description TEXT NOT NULL,
 			enabled BOOLEAN DEFAULT true NOT NULL,
 			"labelName" TEXT NOT NULL,
@@ -102,6 +105,7 @@ beforeAll(async () => {
 			id TEXT PRIMARY KEY NOT NULL,
 			"createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
 			"updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
+			"accountId" TEXT NOT NULL,
 			"completedAt" TIMESTAMP,
 			"emailsClassified" BIGINT DEFAULT 0 NOT NULL,
 			"emailsProcessed" BIGINT DEFAULT 0 NOT NULL,
@@ -116,6 +120,7 @@ beforeAll(async () => {
 			id TEXT PRIMARY KEY NOT NULL,
 			"createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
 			"updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
+			"accountId" TEXT NOT NULL,
 			archived BOOLEAN DEFAULT false NOT NULL,
 			body TEXT NOT NULL,
 			date TIMESTAMP NOT NULL,
@@ -136,6 +141,7 @@ beforeAll(async () => {
 			id TEXT PRIMARY KEY NOT NULL,
 			"createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
 			"updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
+			"accountId" TEXT NOT NULL,
 			"classifierId" TEXT NOT NULL,
 			"classifierName" TEXT NOT NULL,
 			confidence DOUBLE PRECISION NOT NULL,
@@ -155,6 +161,7 @@ beforeAll(async () => {
 			id TEXT PRIMARY KEY NOT NULL,
 			"createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
 			"updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
+			"accountId" TEXT NOT NULL,
 			"gmailId" TEXT NOT NULL,
 			"lastError" TEXT,
 			"retryCount" BIGINT DEFAULT 0 NOT NULL,
@@ -183,6 +190,7 @@ afterEach(async () => {
 describe("Classifier Repository", () => {
 	test("createClassifier creates a new classifier", async () => {
 		const classifier = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Test description",
 			labelName: "TestLabel",
 			name: "Test Classifier",
@@ -201,6 +209,7 @@ describe("Classifier Repository", () => {
 
 	test("findClassifiersByUserId returns user classifiers sorted by priority", async () => {
 		await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Low priority",
 			labelName: "Low",
 			name: "Low",
@@ -208,6 +217,7 @@ describe("Classifier Repository", () => {
 			userId: TEST_USER_ID
 		});
 		await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "High priority",
 			labelName: "High",
 			name: "High",
@@ -215,6 +225,7 @@ describe("Classifier Repository", () => {
 			userId: TEST_USER_ID
 		});
 		await createClassifier(db, {
+			accountId: "other_account",
 			description: "Other user",
 			labelName: "Other",
 			name: "Other",
@@ -231,6 +242,7 @@ describe("Classifier Repository", () => {
 
 	test("findClassifierById returns classifier by ID", async () => {
 		const created = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Test",
 			labelName: "Test",
 			name: "Test",
@@ -249,6 +261,7 @@ describe("Classifier Repository", () => {
 
 	test("updateClassifier updates classifier fields", async () => {
 		const created = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Original",
 			labelName: "Original",
 			name: "Original",
@@ -266,6 +279,7 @@ describe("Classifier Repository", () => {
 
 	test("updateClassifier returns null for wrong user", async () => {
 		const created = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Test",
 			labelName: "Test",
 			name: "Test",
@@ -281,6 +295,7 @@ describe("Classifier Repository", () => {
 
 	test("deleteClassifier removes classifier", async () => {
 		const created = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Test",
 			labelName: "Test",
 			name: "Test",
@@ -296,6 +311,7 @@ describe("Classifier Repository", () => {
 
 	test("deleteClassifier returns false for wrong user", async () => {
 		const created = await createClassifier(db, {
+			accountId: TEST_ACCOUNT_ID,
 			description: "Test",
 			labelName: "Test",
 			name: "Test",
@@ -310,6 +326,7 @@ describe("Classifier Repository", () => {
 describe("Classification Run", () => {
 	test("createClassificationRun creates a new run", async () => {
 		const run = await createClassificationRun(db, {
+			accountId: TEST_ACCOUNT_ID,
 			status: "running",
 			userId: TEST_USER_ID
 		});
@@ -323,6 +340,7 @@ describe("Classification Run", () => {
 
 	test("updateClassificationRun updates run fields", async () => {
 		const run = await createClassificationRun(db, {
+			accountId: TEST_ACCOUNT_ID,
 			status: "running",
 			userId: TEST_USER_ID
 		});
@@ -421,6 +439,7 @@ describe("Email Repository", () => {
 	test("upsertEmails inserts new emails", async () => {
 		const count = await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test body",
 				date: new Date(),
 				from: "from@test.com",
@@ -445,6 +464,7 @@ describe("Email Repository", () => {
 	test("upsertEmails sets archived=true for non-INBOX emails", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -465,6 +485,7 @@ describe("Email Repository", () => {
 	test("upsertEmails sets unread=true for UNREAD label", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -485,6 +506,7 @@ describe("Email Repository", () => {
 	test("upsertEmails updates existing emails", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Original",
 				date: new Date(),
 				from: "from@test.com",
@@ -500,6 +522,7 @@ describe("Email Repository", () => {
 
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Updated",
 				date: new Date(),
 				from: "from@test.com",
@@ -522,6 +545,7 @@ describe("Email Repository", () => {
 		for (let i = 0; i < 5; i++) {
 			await upsertEmails(db, [
 				{
+					accountId: TEST_ACCOUNT_ID,
 					body: `Body ${i}`,
 					date: new Date(Date.now() - i * 1000),
 					from: "from@test.com",
@@ -546,6 +570,7 @@ describe("Email Repository", () => {
 	test("findEmailsByUserId excludes sent emails when excludeSent=true", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Inbox",
 				date: new Date(),
 				from: "from@test.com",
@@ -558,6 +583,7 @@ describe("Email Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Sent",
 				date: new Date(),
 				from: "from@test.com",
@@ -581,6 +607,7 @@ describe("Email Repository", () => {
 	test("findUnclassifiedEmails returns only unclassified non-sent emails", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Unclassified",
 				date: new Date(),
 				from: "from@test.com",
@@ -599,6 +626,7 @@ describe("Email Repository", () => {
 
 		// Classify one email
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.9,
@@ -613,6 +641,7 @@ describe("Email Repository", () => {
 		// Add another unclassified email
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Unclassified 2",
 				date: new Date(),
 				from: "from@test.com",
@@ -634,6 +663,7 @@ describe("Email Repository", () => {
 	test("findEmailByGmailId returns email by Gmail ID", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -659,6 +689,7 @@ describe("Email Repository", () => {
 	test("countEmailsByUserId counts emails", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -671,6 +702,7 @@ describe("Email Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -701,6 +733,7 @@ describe("Email Repository", () => {
 	test("deleteEmailsByIds deletes emails and classifications", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Delete me",
 				date: new Date(),
 				from: "from@test.com",
@@ -726,6 +759,7 @@ describe("Email Repository", () => {
 	test("markEmailArchived marks email as archived", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -749,6 +783,7 @@ describe("Email Repository", () => {
 	test("markEmailRead marks email as read", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -774,6 +809,7 @@ describe("Email Repository", () => {
 	test("markEmailUnread marks email as unread", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -800,6 +836,7 @@ describe("Email Repository", () => {
 
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Old",
 				date: oldDate,
 				from: "from@test.com",
@@ -812,6 +849,7 @@ describe("Email Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "New",
 				date: newDate,
 				from: "from@test.com",
@@ -832,6 +870,7 @@ describe("Email Repository", () => {
 	test("searchEmails filters by query", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Important message",
 				date: new Date(),
 				from: "boss@company.com",
@@ -844,6 +883,7 @@ describe("Email Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Random",
 				date: new Date(),
 				from: "spam@spam.com",
@@ -865,6 +905,7 @@ describe("Email Repository", () => {
 	test("searchEmails filters by classifierIds", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Work",
 				date: new Date(),
 				from: "from@test.com",
@@ -877,6 +918,7 @@ describe("Email Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Personal",
 				date: new Date(),
 				from: "from@test.com",
@@ -894,6 +936,7 @@ describe("Email Repository", () => {
 
 		// Classify first email
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_work",
 			classifierName: "Work",
 			confidence: 0.9,
@@ -917,6 +960,7 @@ describe("Email Classification Repository", () => {
 	test("upsertEmailClassification creates classification", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -933,6 +977,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		const classification = await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test Classifier",
 			confidence: 0.85,
@@ -952,6 +997,7 @@ describe("Email Classification Repository", () => {
 	test("upsertEmailClassification updates existing", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -968,6 +1014,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.5,
@@ -980,6 +1027,7 @@ describe("Email Classification Repository", () => {
 		});
 
 		const updated = await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.9,
@@ -998,6 +1046,7 @@ describe("Email Classification Repository", () => {
 	test("deleteEmailClassification removes classification", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -1014,6 +1063,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.9,
@@ -1032,6 +1082,7 @@ describe("Email Classification Repository", () => {
 	test("markLabelApplied updates labelApplied flag", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "Test",
 				date: new Date(),
 				from: "from@test.com",
@@ -1048,6 +1099,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.9,
@@ -1070,6 +1122,7 @@ describe("Email Classification Repository", () => {
 	test("findClassificationsByEmailIds returns map", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1082,6 +1135,7 @@ describe("Email Classification Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1098,6 +1152,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_1",
 			classifierName: "Test",
 			confidence: 0.9,
@@ -1121,6 +1176,7 @@ describe("Email Classification Repository", () => {
 	test("getClassifierFilterOptions returns unique classifiers with counts", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1133,6 +1189,7 @@ describe("Email Classification Repository", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1149,6 +1206,7 @@ describe("Email Classification Repository", () => {
 		const emails = await findEmailsByUserId(db, TEST_USER_ID);
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_work",
 			classifierName: "Work",
 			confidence: 0.9,
@@ -1161,6 +1219,7 @@ describe("Email Classification Repository", () => {
 		});
 
 		await upsertEmailClassification(db, {
+			accountId: TEST_ACCOUNT_ID,
 			classifierId: "clf_work",
 			classifierName: "Work",
 			confidence: 0.9,
@@ -1181,7 +1240,7 @@ describe("Email Classification Repository", () => {
 
 describe("Sync Queue Repository", () => {
 	test("addToSyncQueue adds items", async () => {
-		const added = await addToSyncQueue(db, TEST_USER_ID, [
+		const added = await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, [
 			"gmail1",
 			"gmail2",
 			"gmail3"
@@ -1190,20 +1249,23 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("addToSyncQueue skips duplicates", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["gmail1"]);
-		const added = await addToSyncQueue(db, TEST_USER_ID, ["gmail1", "gmail2"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["gmail1"]);
+		const added = await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, [
+			"gmail1",
+			"gmail2"
+		]);
 		expect(added).toBe(1);
 	});
 
 	test("getPendingSyncItems returns pending items", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["p1", "p2"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["p1", "p2"]);
 
 		const pending = await getPendingSyncItems(db, TEST_USER_ID);
 		expect(pending).toHaveLength(2);
 	});
 
 	test("markSyncItemSyncing updates status", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["sync1"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["sync1"]);
 		const items = await getPendingSyncItems(db, TEST_USER_ID);
 
 		await markSyncItemSyncing(db, [items[0]!.id]);
@@ -1213,7 +1275,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("markSyncItemSynced updates status and timestamp", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["synced1"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["synced1"]);
 
 		await markSyncItemSynced(db, "synced1", TEST_USER_ID);
 
@@ -1222,7 +1284,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("markSyncItemFailed increments retry count", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["fail1"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["fail1"]);
 
 		const result = await markSyncItemFailed(db, "fail1", TEST_USER_ID, "Error");
 		expect(result.retryCount).toBe(1);
@@ -1230,7 +1292,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("markSyncItemFailed deletes after 5 retries", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["fail_delete"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["fail_delete"]);
 
 		// Fail 5 times
 		for (let i = 0; i < 4; i++) {
@@ -1248,7 +1310,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("deleteSyncedItems removes synced items", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["del1", "del2"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["del1", "del2"]);
 		await markSyncItemSynced(db, "del1", TEST_USER_ID);
 
 		const deleted = await deleteSyncedItems(db, TEST_USER_ID);
@@ -1256,7 +1318,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("getSyncQueueStats returns correct counts", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["s1", "s2", "s3"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["s1", "s2", "s3"]);
 		await markSyncItemSynced(db, "s1", TEST_USER_ID);
 		await markSyncItemFailed(db, "s2", TEST_USER_ID, "Error");
 
@@ -1267,7 +1329,7 @@ describe("Sync Queue Repository", () => {
 	});
 
 	test("resetStuckSyncingItems resets old syncing items", async () => {
-		await addToSyncQueue(db, TEST_USER_ID, ["stuck1"]);
+		await addToSyncQueue(db, TEST_USER_ID, TEST_ACCOUNT_ID, ["stuck1"]);
 		const items = await getPendingSyncItems(db, TEST_USER_ID);
 		await markSyncItemSyncing(db, [items[0]!.id]);
 
@@ -1290,6 +1352,7 @@ describe("Batch Operations", () => {
 	test("markEmailsArchived archives multiple emails", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1302,6 +1365,7 @@ describe("Batch Operations", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1328,6 +1392,7 @@ describe("Batch Operations", () => {
 	test("markEmailsRead marks multiple as read", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1340,6 +1405,7 @@ describe("Batch Operations", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1366,6 +1432,7 @@ describe("Batch Operations", () => {
 	test("markEmailsUnread marks multiple as unread", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1378,6 +1445,7 @@ describe("Batch Operations", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1404,6 +1472,7 @@ describe("Batch Operations", () => {
 	test("markLabelsApplied updates multiple classifications", async () => {
 		await upsertEmails(db, [
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "1",
 				date: new Date(),
 				from: "from@test.com",
@@ -1416,6 +1485,7 @@ describe("Batch Operations", () => {
 				userId: TEST_USER_ID
 			},
 			{
+				accountId: TEST_ACCOUNT_ID,
 				body: "2",
 				date: new Date(),
 				from: "from@test.com",
@@ -1433,6 +1503,7 @@ describe("Batch Operations", () => {
 
 		for (const email of emails) {
 			await upsertEmailClassification(db, {
+				accountId: TEST_ACCOUNT_ID,
 				classifierId: "clf_1",
 				classifierName: "Test",
 				confidence: 0.9,

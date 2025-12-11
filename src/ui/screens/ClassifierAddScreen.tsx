@@ -6,7 +6,7 @@ import {
 	type GeneratedClassifier,
 	generateClassifierFromPrompt
 } from "../../ai/classifier-generator.js";
-import { createClassifier } from "../../database/connection.js";
+import { createClassifier, getAccountId } from "../../database/connection.js";
 import { getEnv } from "../../env.js";
 import { Header } from "../components/Header.js";
 import { Spinner } from "../components/Spinner.js";
@@ -67,7 +67,12 @@ export function ClassifierAddScreen() {
 
 		try {
 			const env = getEnv();
+			const accountId = await getAccountId(db, env.USER_ID);
+			if (!accountId) {
+				throw new Error("No account found. Please connect Gmail first.");
+			}
 			await createClassifier(db, {
+				accountId,
 				description: generated.description,
 				labelName: generated.labelName,
 				name: generated.name,
@@ -151,7 +156,7 @@ export function ClassifierAddScreen() {
 
 				<Box marginTop={1}>
 					<Text dimColor>
-						Press Enter to generate classifier, Esc to cancel
+						Press Enter to generate classifier, esc to cancel
 					</Text>
 				</Box>
 			</Box>
@@ -193,7 +198,7 @@ export function ClassifierAddScreen() {
 					</Box>
 
 					<Box marginTop={1}>
-						<Text dimColor>Press Enter to save, Esc to cancel</Text>
+						<Text dimColor>Press Enter to save, esc to cancel</Text>
 					</Box>
 				</Box>
 			);
@@ -271,7 +276,7 @@ export function ClassifierAddScreen() {
 				/>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press Esc to go back to prompt</Text>
+					<Text dimColor>Press esc to go back to prompt</Text>
 				</Box>
 			</Box>
 		);
@@ -304,7 +309,7 @@ export function ClassifierAddScreen() {
 				<Header title="Add Classifier" />
 				<Text color="red">Error: {error}</Text>
 				<Box marginTop={1}>
-					<Text dimColor>Press Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);

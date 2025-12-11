@@ -84,7 +84,7 @@ Launch the terminal UI for a guided experience:
 gmail-agent
 ```
 
-Navigate with arrow keys, Enter to select, Esc to go back.
+Navigate with arrow keys, Enter to select, esc to go back.
 
 The TUI will guide you through connecting your Gmail account, creating classifiers, syncing emails, and classifying them.
 

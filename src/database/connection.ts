@@ -162,6 +162,17 @@ export async function closeDatabase(): Promise<void> {
 	}
 }
 
+// Helper to get accountId from userId
+export async function getAccountId(
+	db: Database,
+	userId: string
+): Promise<string | null> {
+	const result = await db.query.account.findFirst({
+		where: and(eq(account.userId, userId), eq(account.providerId, "google"))
+	});
+	return result?.id ?? null;
+}
+
 // Classifier Repository functions
 export async function findClassifiersByUserId(
 	db: Database,
@@ -189,6 +200,106 @@ export async function createClassifier(
 ): Promise<Classifier | null> {
 	const result = await db.insert(classifier).values(payload).returning();
 	return result?.at(0) ?? null;
+}
+
+// Default classifiers to seed for new users
+// These are ordered by priority - higher priority classifiers are checked first
+// and take precedence when multiple classifiers could match an email
+export const DEFAULT_CLASSIFIERS: Array<
+	Omit<ClassifierInsert, "userId" | "id" | "accountId">
+> = [
+	{
+		description:
+			"Spam, scams, and phishing attempts: Emails trying to steal personal information, fake invoices, lottery/prize scams, Nigerian prince schemes, impersonation of banks/companies asking for credentials, urgent threats demanding immediate action, suspicious links, requests for gift cards, fake job offers, romance scams, cryptocurrency scams, and any deceptive email designed to defraud or harvest sensitive data",
+		labelName: "Suspicious",
+		name: "Spam & Scams",
+		priority: 11
+	},
+	{
+		description:
+			"Emails that need a reply or personal attention: Direct questions from real people expecting a response, requests for information or feedback, personal emails from friends/family/colleagues, introductions, invitations requiring RSVP, and any email where someone is waiting for your reply. Does NOT include automated emails, marketing, or notifications.",
+		labelName: "NeedsReply",
+		name: "Needs Reply",
+		priority: 10
+	},
+	{
+		description:
+			"Banking and financial account emails: Bank statements, credit card statements, wire transfer notices, investment portfolio updates, tax documents (W2, 1099), bills and payment due reminders, loan statements, and official communications from banks or financial institutions about your accounts",
+		labelName: "Finance",
+		name: "Financial",
+		priority: 8
+	},
+	{
+		description:
+			"Online shopping and deliveries: Order confirmations from Amazon/eBay/etc, itemized receipts, shipping notifications, package tracking updates, delivery confirmations, out-for-delivery alerts, and updates from carriers like FedEx/UPS/USPS/DHL",
+		labelName: "Orders",
+		name: "Orders & Shipping",
+		priority: 6
+	},
+	{
+		description:
+			"Automated system notifications that need no action: Calendar event confirmations, appointment reminders, password change notices, login alerts, account settings changes, welcome emails, email verification confirmations, subscription renewal notices, and any auto-generated acknowledgment that something happened successfully",
+		labelName: "Notifications",
+		name: "Automated Notifications",
+		priority: 5
+	},
+	{
+		description:
+			"Newsletters and content subscriptions: Blog digests, industry news roundups, weekly/daily newsletters, Substack posts, Medium digests, product updates from companies you follow, educational content, and curated content from publishers",
+		labelName: "Newsletters",
+		name: "Newsletters",
+		priority: 4
+	},
+	{
+		description:
+			"Marketing and promotions: Sales announcements, discount codes, promotional offers, flash sales, abandoned cart reminders, product recommendations, brand newsletters focused on selling, and advertising emails from retailers or services",
+		labelName: "Promotions",
+		name: "Marketing & Promos",
+		priority: 2
+	}
+];
+
+/**
+ * Seeds default classifiers for a user if they haven't been seeded before.
+ * Uses a flag on the account to track if defaults have been seeded,
+ * so users who delete all classifiers won't get defaults again.
+ * Returns the number of classifiers created.
+ */
+export async function seedDefaultClassifiers(
+	db: Database,
+	userId: string
+): Promise<number> {
+	// Check if defaults have already been seeded for this user
+	const userAccount = await db.query.account.findFirst({
+		where: and(eq(account.userId, userId), eq(account.providerId, "google"))
+	});
+
+	if (!userAccount || userAccount.defaultClassifiersSeeded) {
+		return 0;
+	}
+
+	const accountId = userAccount.id;
+
+	// Create default classifiers
+	let created = 0;
+	for (const classifierData of DEFAULT_CLASSIFIERS) {
+		const result = await createClassifier(db, {
+			...classifierData,
+			accountId,
+			userId
+		});
+		if (result) {
+			created++;
+		}
+	}
+
+	// Mark defaults as seeded
+	await db
+		.update(account)
+		.set({ defaultClassifiersSeeded: true, updatedAt: new Date() })
+		.where(and(eq(account.userId, userId), eq(account.providerId, "google")));
+
+	return created;
 }
 
 export async function updateClassifier(
@@ -300,6 +411,8 @@ export async function deleteGmailTokens(
 	db: Database,
 	userId: string
 ): Promise<void> {
+	// Deleting the account will CASCADE delete all related data
+	// (classifiers, emails, classifications, sync queue, classification runs)
 	await db
 		.delete(account)
 		.where(and(eq(account.userId, userId), eq(account.providerId, "google")));
@@ -760,6 +873,7 @@ export interface SyncQueueStats {
 export async function addToSyncQueue(
 	db: Database,
 	userId: string,
+	accountId: string,
 	gmailIds: string[]
 ): Promise<number> {
 	if (gmailIds.length === 0) return 0;
@@ -770,6 +884,7 @@ export async function addToSyncQueue(
 	for (let i = 0; i < gmailIds.length; i += BATCH_SIZE) {
 		const batch = gmailIds.slice(i, i + BATCH_SIZE);
 		const entries: SyncQueueEntryInsert[] = batch.map((gmailId) => ({
+			accountId,
 			gmailId,
 			status: "pending",
 			userId

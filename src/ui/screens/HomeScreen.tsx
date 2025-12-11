@@ -2,9 +2,12 @@ import { Box, Text, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import { useEffect, useState } from "react";
 import { ensureValidToken } from "../../cli/commands/auth.js";
-import { getPendingSyncItems } from "../../database/connection.js";
+import {
+	getAccountId,
+	getPendingSyncItems
+} from "../../database/connection.js";
 import { getEnv } from "../../env.js";
-import { BackgroundSyncManager } from "../../gmail/background-sync.js";
+import { getBackgroundSyncManager } from "../../gmail/background-sync.js";
 import { Header } from "../components/Header.js";
 import { type Screen, useApp } from "../context.js";
 
@@ -34,12 +37,16 @@ export function HomeScreen() {
 				if (pendingItems.length > 0) {
 					setStartupSyncStarted(true);
 
-					// Get access token and start background sync
+					// Get access token and accountId for background sync
 					const accessToken = await ensureValidToken();
-					const manager = new BackgroundSyncManager(
+					const accountId = await getAccountId(db, env.USER_ID);
+					if (!accountId) return;
+
+					const manager = getBackgroundSyncManager(
 						accessToken,
 						db,
-						env.USER_ID
+						env.USER_ID,
+						accountId
 					);
 
 					// Start resume sync in background
@@ -81,7 +88,12 @@ export function HomeScreen() {
 			value: "auth"
 		},
 		{ label: "Manage Classifiers", value: "classifiers" },
-		{ label: "Sync Emails", value: "sync" },
+		{
+			label: backgroundSync.isRunning
+				? "Sync Emails (in progress - press to view/stop)"
+				: "Sync Emails",
+			value: "sync"
+		},
 		{ label: "View Emails", value: "emails" },
 		{ label: "Classify Emails", value: "classify" },
 		{ label: "Exit", value: "exit" }

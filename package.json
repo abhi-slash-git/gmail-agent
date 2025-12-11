@@ -44,7 +44,7 @@
 		"check:version": "bun scripts/check-version-bump.ts \"$@\"",
 		"db:check": "bun --bun drizzle-kit check",
 		"db:generate": "bun --bun drizzle-kit generate && bun scripts/compile-migration.ts",
-		"dev": "bun --hot run index.tsx",
+		"dev": "bun --watch run index.tsx",
 		"lint": "biome check --write",
 		"npm:package": "bun scripts/generate-npm-packages.ts",
 		"postinstall": "bun scripts/copy-pglite-assets.ts",
@@ -60,5 +60,5 @@
 		"tsc": "tsgo --noEmit 2>&1 | head -50"
 	},
 	"type": "module",
-	"version": "1.0.8"
+	"version": "1.0.9"
 }

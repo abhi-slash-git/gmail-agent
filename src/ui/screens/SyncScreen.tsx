@@ -1,16 +1,18 @@
 import { Box, Text, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import TextInput from "ink-text-input";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ensureValidToken } from "../../cli/commands/auth.js";
 import {
 	countEmailsByUserId,
+	getAccountId,
 	getLatestEmailDate
 } from "../../database/connection.js";
 import { getEnv } from "../../env.js";
 import {
-	BackgroundSyncManager,
-	type BackgroundSyncProgress
+	type BackgroundSyncManager,
+	type BackgroundSyncProgress,
+	getBackgroundSyncManager
 } from "../../gmail/background-sync.js";
 import { Header } from "../components/Header.js";
 import { useApp } from "../context.js";
@@ -40,6 +42,7 @@ export function SyncScreen() {
 		isAuthenticated,
 		setScreen,
 		setBackgroundSync,
+		backgroundSync,
 		refreshSyncStats
 	} = useApp();
 	const [state, setState] = useState<SyncState>("idle");
@@ -50,16 +53,14 @@ export function SyncScreen() {
 	const [query, setQuery] = useState("");
 	const [syncType, setSyncType] = useState<SyncType>("recent");
 	const [maxEmails, setMaxEmails] = useState(100);
-	const [_syncManager, setSyncManager] = useState<BackgroundSyncManager | null>(
-		null
-	);
+	const syncManagerRef = useRef<BackgroundSyncManager | null>(null);
 	const [_beforeCount, setBeforeCount] = useState(0);
-	const [startTime, setStartTime] = useState(0);
+	const [startTime, setStartTime] = useState<number | null>(null);
 	const [afterDate, setAfterDate] = useState<Date | null>(null);
 	const [elapsed, setElapsed] = useState(0);
 
 	useInput((input, key) => {
-		if (key.escape || input === "b") {
+		if (key.escape) {
 			if (state === "enterQuery" || state === "selectCount") {
 				setState("idle");
 			} else {
@@ -67,24 +68,88 @@ export function SyncScreen() {
 				setScreen("home");
 			}
 		}
+		// Stop sync with 's' key
+		if (input === "s" && state === "syncing" && syncManagerRef.current) {
+			syncManagerRef.current.stop();
+		}
 	});
 
-	// Update context when sync progress changes
+	// Track if we're viewing an existing sync (started elsewhere) vs one we started
+	const [isViewingExistingSync, setIsViewingExistingSync] = useState(false);
+	const hasCheckedOnMount = useRef(false);
+
+	// Check if sync is already running on mount
 	useEffect(() => {
-		if (syncProgress) {
+		if (hasCheckedOnMount.current) return;
+		hasCheckedOnMount.current = true;
+
+		if (
+			backgroundSync.isRunning &&
+			backgroundSync.progress &&
+			state === "idle"
+		) {
+			// A sync is already in progress, show the syncing state
+			setIsViewingExistingSync(true);
+			setSyncProgress(backgroundSync.progress);
+			setState("syncing");
+			// Get the manager singleton so we can stop it
+			const initManager = async () => {
+				try {
+					const env = getEnv();
+					const accessToken = await ensureValidToken();
+					const accountId = await getAccountId(db, env.USER_ID);
+					if (accountId) {
+						const manager = getBackgroundSyncManager(
+							accessToken,
+							db,
+							env.USER_ID,
+							accountId
+						);
+						syncManagerRef.current = manager;
+					}
+				} catch {
+					// Ignore errors getting manager
+				}
+			};
+			void initManager();
+		}
+	}, [backgroundSync.isRunning, backgroundSync.progress, db, state]);
+
+	// Update context when sync progress changes (only if we started the sync)
+	useEffect(() => {
+		if (syncProgress && !isViewingExistingSync) {
 			setBackgroundSync({
 				isRunning: syncProgress.isRunning,
 				progress: syncProgress,
 				stats: null
 			});
 		}
-	}, [syncProgress, setBackgroundSync]);
+	}, [syncProgress, setBackgroundSync, isViewingExistingSync]);
+
+	// Keep local syncProgress in sync with context when viewing ongoing sync
+	useEffect(() => {
+		if (isViewingExistingSync && backgroundSync.progress) {
+			setSyncProgress(backgroundSync.progress);
+			// Check if sync completed
+			if (!backgroundSync.isRunning) {
+				setIsViewingExistingSync(false);
+				setState("idle");
+			}
+		}
+	}, [
+		backgroundSync.progress,
+		backgroundSync.isRunning,
+		isViewingExistingSync
+	]);
 
 	// Update elapsed timer every second while syncing
 	useEffect(() => {
-		if (state !== "syncing" || !startTime) {
+		if (state !== "syncing" || startTime === null) {
 			return;
 		}
+
+		// Set initial elapsed immediately
+		setElapsed(Math.floor((Date.now() - startTime) / 1000));
 
 		const interval = setInterval(() => {
 			setElapsed(Math.floor((Date.now() - startTime) / 1000));
@@ -98,10 +163,11 @@ export function SyncScreen() {
 
 		const emailCount = selectedMaxEmails ?? maxEmails;
 		const env = getEnv();
+		const syncStartTime = Date.now();
 
 		setState("syncing");
 		setError(null);
-		setStartTime(Date.now());
+		setStartTime(syncStartTime);
 		setElapsed(0);
 
 		// Initialize progress immediately
@@ -120,9 +186,20 @@ export function SyncScreen() {
 			const initialCount = await countEmailsByUserId(db, env.USER_ID);
 			setBeforeCount(initialCount);
 
-			// Create background sync manager
-			const manager = new BackgroundSyncManager(accessToken, db, env.USER_ID);
-			setSyncManager(manager);
+			// Get accountId for foreign key
+			const accountId = await getAccountId(db, env.USER_ID);
+			if (!accountId) {
+				throw new Error("No account found. Please connect Gmail first.");
+			}
+
+			// Get background sync manager singleton
+			const manager = getBackgroundSyncManager(
+				accessToken,
+				db,
+				env.USER_ID,
+				accountId
+			);
+			syncManagerRef.current = manager;
 
 			// Build sync options based on type
 			let syncQuery = query;
@@ -130,28 +207,35 @@ export function SyncScreen() {
 
 			switch (syncType) {
 				case "recent":
-					// Last 30 days (default)
+					// Last 30 days (default) - background sync adds this automatically
 					break;
 				case "all":
 					syncAll = true;
 					break;
 				case "date-range": {
-					// Add date range to query
+					// Add date range to query - last year
 					const oneYearAgo = new Date();
 					oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-					syncQuery = `${query} after:${Math.floor(oneYearAgo.getTime() / 1000)}`;
+					const yearAgoTimestamp = Math.floor(oneYearAgo.getTime() / 1000);
+					syncQuery = query
+						? `${query} after:${yearAgoTimestamp}`
+						: `after:${yearAgoTimestamp}`;
 					break;
 				}
 				case "new": {
 					// Sync emails newer than the latest stored email
 					if (afterDate) {
 						const afterTimestamp = Math.floor(afterDate.getTime() / 1000) + 1;
-						syncQuery = `${query} after:${afterTimestamp}`;
+						syncQuery = query
+							? `${query} after:${afterTimestamp}`
+							: `after:${afterTimestamp}`;
 					}
+					// If no afterDate (no existing emails), fall through to use default 30-day filter
 					break;
 				}
 				case "custom":
-					// Use custom query as-is
+					// Use custom query as-is, without any date filter
+					syncAll = true;
 					break;
 			}
 
@@ -175,7 +259,7 @@ export function SyncScreen() {
 			// Sync complete - calculate results
 			const afterCount = await countEmailsByUserId(db, env.USER_ID);
 			const newEmails = afterCount - initialCount;
-			const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+			const elapsed = ((Date.now() - syncStartTime) / 1000).toFixed(1);
 
 			// Clean up synced items from queue
 			await manager.cleanup();
@@ -203,7 +287,7 @@ export function SyncScreen() {
 				<Header title="Sync Emails" />
 				<Text color="yellow">Please connect Gmail first.</Text>
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -300,7 +384,7 @@ export function SyncScreen() {
 				</Box>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press Enter to continue, Esc to go back</Text>
+					<Text dimColor>Press Enter to continue, esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -311,18 +395,18 @@ export function SyncScreen() {
 		const countItems =
 			syncType === "all"
 				? [
-						{ label: "500 emails", value: "500" },
 						{ label: "1,000 emails", value: "1000" },
-						{ label: "2,500 emails", value: "2500" },
 						{ label: "5,000 emails", value: "5000" },
-						{ label: "10,000 emails (may take a while)", value: "10000" }
+						{ label: "10,000 emails", value: "10000" },
+						{ label: "25,000 emails", value: "25000" },
+						{ label: "All emails (no limit)", value: "0" }
 					]
 				: [
-						{ label: "50 emails", value: "50" },
 						{ label: "100 emails", value: "100" },
-						{ label: "250 emails", value: "250" },
 						{ label: "500 emails", value: "500" },
-						{ label: "1,000 emails", value: "1000" }
+						{ label: "1,000 emails", value: "1000" },
+						{ label: "5,000 emails", value: "5000" },
+						{ label: "All matching emails (no limit)", value: "0" }
 					];
 
 		return (
@@ -363,7 +447,7 @@ export function SyncScreen() {
 				/>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -446,7 +530,7 @@ export function SyncScreen() {
 
 				<Box marginTop={2}>
 					<Text dimColor>
-						Syncing {String(maxEmails)} emails
+						Syncing {maxEmails === 0 ? "all" : String(maxEmails)} emails
 						{syncType === "all" && " from all time"}
 						{syncType === "recent" && " from the last 30 days"}
 						{syncType === "date-range" && " from the last year"}
@@ -457,8 +541,9 @@ export function SyncScreen() {
 					</Text>
 				</Box>
 
-				<Box marginTop={1}>
-					<Text color="cyan">Press Esc to continue in background</Text>
+				<Box flexDirection="column" marginTop={1}>
+					<Text color="cyan">Press esc to continue in background</Text>
+					<Text color="red">Press s to stop sync</Text>
 				</Box>
 			</Box>
 		);
@@ -518,7 +603,7 @@ export function SyncScreen() {
 				</Box>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -535,7 +620,7 @@ export function SyncScreen() {
 				</Box>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press b or Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);

@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { classifyEmailsParallel } from "../../ai/parallel-classifier.js";
 import {
 	type ClassifierFilterOption,
@@ -9,7 +9,7 @@ import {
 	type Email,
 	type EmailClassification,
 	findClassifiersByUserId,
-	getClassifierFilterOptions,
+	getAccountId,
 	getGmailTokens,
 	getUserProfile,
 	markEmailArchived,
@@ -42,7 +42,7 @@ type ViewState =
 	| "confirm-sync-labels"
 	| "processing";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 const VISIBLE_ROWS = 20; // Number of email rows visible at once
 
 interface EmailWithClassification extends Email {
@@ -59,9 +59,6 @@ export function EmailsScreen() {
 	const [page, setPage] = useState(0);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [activeQuery, setActiveQuery] = useState("");
-	const [classifierOptions, setClassifierOptions] = useState<
-		ClassifierFilterOption[]
-	>([]);
 	const [selectedClassifierIds, setSelectedClassifierIds] = useState<string[]>(
 		[]
 	);
@@ -90,18 +87,20 @@ export function EmailsScreen() {
 			conditions.push(`e.archived = false`);
 		} else if (viewMode === "unread") {
 			conditions.push(`e.unread = true`);
+			conditions.push(`e.archived = false`);
 		}
 		// viewMode === "all" has no additional conditions
 
-		// Search query
+		// Search query - use separate params for each field to work around PGlite format() issue
 		if (activeQuery) {
+			const searchValue = `%${activeQuery}%`;
 			conditions.push(`(
 				e.subject ILIKE $${paramIndex} OR
-				e."from" ILIKE $${paramIndex} OR
-				e.snippet ILIKE $${paramIndex}
+				e."from" ILIKE $${paramIndex + 1} OR
+				e.snippet ILIKE $${paramIndex + 2}
 			)`);
-			params.push(`%${activeQuery}%`);
-			paramIndex++;
+			params.push(searchValue, searchValue, searchValue);
+			paramIndex += 3;
 		}
 
 		// Classifier filter
@@ -139,7 +138,7 @@ export function EmailsScreen() {
 			OFFSET ${offset}
 		`;
 
-		return { emailParams: params, emailQuery: query };
+		return { emailParams: [...params], emailQuery: query };
 	}, [env.USER_ID, viewMode, activeQuery, selectedClassifierIds, page]);
 
 	// Live query for emails with classifications
@@ -149,6 +148,7 @@ export function EmailsScreen() {
 		error: queryError
 	} = useLiveQuery<{
 		id: string;
+		accountId: string;
 		createdAt: Date;
 		updatedAt: Date;
 		archived: boolean;
@@ -164,6 +164,7 @@ export function EmailsScreen() {
 		unread: boolean;
 		userId: string;
 		classification_id: string | null;
+		classification_accountId: string | null;
 		classifier_id: string | null;
 		classifier_name: string | null;
 		confidence: number | null;
@@ -185,16 +186,19 @@ export function EmailsScreen() {
 			conditions.push(`archived = false`);
 		} else if (viewMode === "unread") {
 			conditions.push(`unread = true`);
+			conditions.push(`archived = false`);
 		}
 
+		// Search query - use separate params for each field to work around PGlite format() issue
 		if (activeQuery) {
+			const searchValue = `%${activeQuery}%`;
 			conditions.push(`(
 				subject ILIKE $${paramIndex} OR
-				"from" ILIKE $${paramIndex} OR
-				snippet ILIKE $${paramIndex}
+				"from" ILIKE $${paramIndex + 1} OR
+				snippet ILIKE $${paramIndex + 2}
 			)`);
-			params.push(`%${activeQuery}%`);
-			paramIndex++;
+			params.push(searchValue, searchValue, searchValue);
+			paramIndex += 3;
 		}
 
 		if (selectedClassifierIds.length > 0) {
@@ -209,7 +213,7 @@ export function EmailsScreen() {
 		}
 
 		return {
-			countParams: params,
+			countParams: [...params],
 			countQuery: `SELECT COUNT(*)::int as count FROM email WHERE ${conditions.join(" AND ")}`
 		};
 	}, [env.USER_ID, viewMode, activeQuery, selectedClassifierIds]);
@@ -221,9 +225,68 @@ export function EmailsScreen() {
 	);
 	const totalCount = countRows[0]?.count ?? 0;
 
+	// Live query for classifier filter options - filtered by current view mode
+	const { classifierQuery, classifierParams } = useMemo(() => {
+		const conditions: string[] = [`ec."userId" = $1`];
+		const params: unknown[] = [env.USER_ID];
+
+		// Filter by view mode
+		if (viewMode === "archived") {
+			conditions.push(`e.archived = true`);
+		} else if (viewMode === "inbox") {
+			conditions.push(`e.archived = false`);
+		} else if (viewMode === "unread") {
+			conditions.push(`e.unread = true`);
+			conditions.push(`e.archived = false`);
+		}
+
+		return {
+			classifierParams: params,
+			classifierQuery: `
+				SELECT ec."classifierId" as id, ec."classifierName" as name, COUNT(*)::int as count
+				FROM email_classification ec
+				JOIN email e ON ec."emailId" = e.id
+				WHERE ${conditions.join(" AND ")}
+				GROUP BY ec."classifierId", ec."classifierName"
+				ORDER BY ec."classifierName"
+			`
+		};
+	}, [env.USER_ID, viewMode]);
+
+	const { rows: rawClassifierOptions } = useLiveQuery<{
+		id: string;
+		name: string;
+		count: number;
+	}>(sql, classifierQuery, classifierParams);
+
+	// Live query for all classifiers (for filter screen)
+	const { rows: allClassifiers } = useLiveQuery<{
+		id: string;
+		name: string;
+	}>(sql, `SELECT id, name FROM classifier WHERE "userId" = $1 ORDER BY name`, [
+		env.USER_ID
+	]);
+
+	// Transform to ClassifierFilterOption type, including all classifiers
+	const classifierOptions: ClassifierFilterOption[] = useMemo(() => {
+		// Create a map of classifier counts from classifications
+		const countMap = new Map<string, number>();
+		for (const row of rawClassifierOptions) {
+			countMap.set(row.id, row.count);
+		}
+
+		// Include all classifiers, with count of 0 if no classifications
+		return allClassifiers.map((classifier) => ({
+			count: countMap.get(classifier.id) ?? 0,
+			id: classifier.id,
+			name: classifier.name
+		}));
+	}, [rawClassifierOptions, allClassifiers]);
+
 	// Transform raw results to EmailWithClassification
 	const emails: EmailWithClassification[] = useMemo(() => {
 		return rawEmails.map((row) => ({
+			accountId: row.accountId,
 			archived: row.archived,
 			body: row.body,
 			classification:
@@ -232,6 +295,7 @@ export function EmailsScreen() {
 				row.classifier_name &&
 				row.confidence !== null
 					? {
+							accountId: row.classification_accountId ?? row.accountId,
 							classifierId: row.classifier_id,
 							classifierName: row.classifier_name,
 							confidence: row.confidence,
@@ -273,15 +337,6 @@ export function EmailsScreen() {
 			setViewportStart(newIndex - VISIBLE_ROWS + 1);
 		}
 	};
-
-	// Load classifier options on mount
-	useEffect(() => {
-		const init = async () => {
-			const options = await getClassifierFilterOptions(db, env.USER_ID);
-			setClassifierOptions(options);
-		};
-		void init();
-	}, [db, env.USER_ID]);
 
 	const handleResetClassification = async () => {
 		const email = emails[selectedIndex];
@@ -703,17 +758,21 @@ export function EmailsScreen() {
 
 				if (classifier) {
 					// Save classification to database
-					await upsertEmailClassification(db, {
-						classifierId: classifier.id,
-						classifierName: classifier.name,
-						confidence: result.confidence,
-						emailId: email.id,
-						gmailId: email.gmailId,
-						labelApplied: false,
-						labelName: classifier.labelName,
-						reasoning: "",
-						userId: env.USER_ID
-					});
+					const accountId = await getAccountId(db, env.USER_ID);
+					if (accountId) {
+						await upsertEmailClassification(db, {
+							accountId,
+							classifierId: classifier.id,
+							classifierName: classifier.name,
+							confidence: result.confidence,
+							emailId: email.id,
+							gmailId: email.gmailId,
+							labelApplied: false,
+							labelName: classifier.labelName,
+							reasoning: "",
+							userId: env.USER_ID
+						});
+					}
 					// Live query will auto-update
 				}
 			}
@@ -775,6 +834,7 @@ export function EmailsScreen() {
 
 			// Save classifications
 			let _classified = 0;
+			const accountId = await getAccountId(db, env.USER_ID);
 			for (let i = 0; i < results.length; i++) {
 				const result = results[i];
 				const email = emailsToClassify[i];
@@ -784,8 +844,9 @@ export function EmailsScreen() {
 						(c) => c.id === result.classifierId
 					);
 
-					if (classifier) {
+					if (classifier && accountId) {
 						await upsertEmailClassification(db, {
+							accountId,
 							classifierId: classifier.id,
 							classifierName: classifier.name,
 							confidence: result.confidence,
@@ -967,7 +1028,7 @@ export function EmailsScreen() {
 			}
 		}
 
-		if (input === "c") {
+		if (input === "z") {
 			setActiveQuery("");
 			setSearchQuery("");
 			setSelectedClassifierIds([]);
@@ -1042,13 +1103,9 @@ export function EmailsScreen() {
 		}
 
 		// Classify selected emails
-		if (input === "c" && selectedIds.size > 0) {
-			const emailsToClassify = emails.filter(
-				(e) => selectedIds.has(e.id) && canClassify(e)
-			);
-			if (emailsToClassify.length > 0) {
-				void handleBulkClassify();
-			}
+		if (input === "c" && selectedIds.size > 0 && state === "list") {
+			void handleBulkClassify();
+			return;
 		}
 
 		// Clear selection with Escape when items are selected
@@ -1099,7 +1156,7 @@ export function EmailsScreen() {
 				<Header title="Emails" />
 				<Text color="red">Error: {error}</Text>
 				<Box marginTop={1}>
-					<Text dimColor>Press Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -1307,7 +1364,7 @@ export function EmailsScreen() {
 				</Box>
 				<Box marginTop={1}>
 					<Text dimColor>
-						Esc: back | d: delete | a: archive | r:{" "}
+						esc: back | d: delete | a: archive | r:{" "}
 						{email.unread ? "read" : "unread"}
 						{canSyncLabel(email) ? " | l: sync label" : ""}
 						{email.classification && !isNoMatchClassification(email)
@@ -1339,7 +1396,7 @@ export function EmailsScreen() {
 					/>
 				</Box>
 				<Box marginTop={1}>
-					<Text dimColor>Press Enter to search, Esc to cancel</Text>
+					<Text dimColor>Press Enter to search, esc to cancel</Text>
 				</Box>
 			</Box>
 		);
@@ -1356,7 +1413,7 @@ export function EmailsScreen() {
 				{classifierOptions.length === 0 ? (
 					<Box marginBottom={1}>
 						<Text color="yellow">
-							No classified emails found. Classify some emails first.
+							No classifiers configured. Add classifiers first.
 						</Text>
 					</Box>
 				) : (
@@ -1386,7 +1443,7 @@ export function EmailsScreen() {
 				)}
 				<Box marginTop={1}>
 					<Text dimColor>
-						↑/↓: navigate | Space: toggle | Enter: apply | c: clear all | Esc:
+						↑/↓: navigate | Space: toggle | Enter: apply | c: clear all | esc:
 						cancel
 					</Text>
 				</Box>
@@ -1407,14 +1464,12 @@ export function EmailsScreen() {
 		.filter((o) => selectedClassifierIds.includes(o.id))
 		.map((o) => o.name);
 
-	const viewModeLabel =
-		viewMode === "inbox"
-			? "Inbox"
-			: viewMode === "unread"
-				? "Unread"
-				: viewMode === "archived"
-					? "Archived"
-					: "All";
+	const viewModes: { mode: ViewMode; label: string; color: string }[] = [
+		{ color: "cyan", label: "All", mode: "all" },
+		{ color: "green", label: "Inbox", mode: "inbox" },
+		{ color: "magenta", label: "Unread", mode: "unread" },
+		{ color: "yellow", label: "Archived", mode: "archived" }
+	];
 
 	return (
 		<Box flexDirection="column">
@@ -1427,26 +1482,22 @@ export function EmailsScreen() {
 				title="Emails"
 			/>
 
-			{/* View mode indicator */}
+			{/* View mode tabs */}
 			<Box marginBottom={1}>
-				<Text>
-					View:{" "}
-					<Text
-						bold
-						color={
-							viewMode === "inbox"
-								? "green"
-								: viewMode === "unread"
-									? "magenta"
-									: viewMode === "archived"
-										? "yellow"
-										: "cyan"
-						}
-					>
-						{viewModeLabel}
+				<Text>View: </Text>
+				{viewModes.map((vm, i) => (
+					<Text key={vm.mode}>
+						{i > 0 && <Text dimColor> | </Text>}
+						<Text
+							bold={viewMode === vm.mode}
+							color={viewMode === vm.mode ? vm.color : "gray"}
+							dimColor={viewMode !== vm.mode}
+						>
+							{vm.label}
+						</Text>
 					</Text>
-					<Text dimColor> (press v to switch)</Text>
-				</Text>
+				))}
+				<Text dimColor> (v)</Text>
 			</Box>
 
 			{hasFilters && (
@@ -1462,7 +1513,7 @@ export function EmailsScreen() {
 							<Text bold>{selectedClassifierNames.join(", ")}</Text>
 						</Text>
 					)}
-					<Text dimColor>(press c to clear all filters)</Text>
+					<Text dimColor>(press z to clear filters)</Text>
 				</Box>
 			)}
 
@@ -1504,8 +1555,16 @@ export function EmailsScreen() {
 									<Text color={isChecked ? "green" : "gray"}>
 										[{isChecked ? "x" : " "}]
 									</Text>
-									<Text color={email.unread ? "blue" : undefined}>
-										{email.unread ? "●" : " "}
+									<Text
+										color={
+											email.unread
+												? "magenta"
+												: email.archived
+													? "yellow"
+													: undefined
+										}
+									>
+										{email.unread ? "●" : email.archived ? "○" : " "}
 									</Text>
 									<Text
 										bold={isCursor || email.unread}
@@ -1549,14 +1608,18 @@ export function EmailsScreen() {
 					<Text dimColor>
 						↑/↓: navigate | x: select | A: {allSelected ? "deselect" : "select"}{" "}
 						all | Enter: view | /: search | f: filter | v: view | ←/→: page |
-						Esc: back
+						esc: back
 					</Text>
 				</Box>
 				{selectedIds.size > 0 && (
 					<Box>
 						<Text dimColor>
-							c: classify | d: delete | a: archive | l: sync labels | r: read |
-							u: unread | Esc: clear
+							{emails.some((e) => selectedIds.has(e.id) && canClassify(e)) &&
+								"c: classify | "}
+							d: delete | a: archive |{" "}
+							{emails.some((e) => selectedIds.has(e.id) && canSyncLabel(e)) &&
+								"l: sync labels | "}
+							r: read | u: unread | esc: clear
 						</Text>
 					</Box>
 				)}

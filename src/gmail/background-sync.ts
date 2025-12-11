@@ -47,17 +47,24 @@ export class BackgroundSyncManager {
 	private gmail: gmail_v1.Gmail;
 	private db: Database;
 	readonly userId: string;
+	readonly accountId: string;
 	private rateLimiter: AdaptiveRateLimiter;
 	private isRunning = false;
 	private shouldStop = false;
 	private progress: BackgroundSyncProgress;
 
-	constructor(accessToken: string, db: Database, userId: string) {
+	constructor(
+		accessToken: string,
+		db: Database,
+		userId: string,
+		accountId: string
+	) {
 		const auth = new google.auth.OAuth2();
 		auth.setCredentials({ access_token: accessToken });
 		this.gmail = google.gmail({ auth, version: "v1" });
 		this.db = db;
 		this.userId = userId;
+		this.accountId = accountId;
 
 		this.rateLimiter = new AdaptiveRateLimiter({
 			initialConcurrency: MAX_CONCURRENT_FETCHES,
@@ -201,19 +208,22 @@ export class BackgroundSyncManager {
 	private async listAndQueueMessages(
 		options: BackgroundSyncOptions
 	): Promise<string[]> {
-		const messageIds: string[] = [];
+		const allMessageIds: string[] = [];
+		let batchMessageIds: string[] = [];
 		let pageToken: string | undefined;
 
 		// Build query
 		let query = options.query || "";
-		if (!options.syncAll) {
+		// Only add 30-day filter if syncAll is false AND query doesn't already have an after: clause
+		if (!options.syncAll && !query.includes("after:")) {
 			const thirtyDaysAgo = new Date();
 			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 			const dateQuery = `after:${Math.floor(thirtyDaysAgo.getTime() / 1000)}`;
 			query = query ? `${query} ${dateQuery}` : dateQuery;
 		}
 
-		const maxToFetch = options.maxResults || (options.syncAll ? 10000 : 500);
+		// maxResults of 0 or undefined means no limit
+		const maxToFetch = options.maxResults || Infinity;
 
 		do {
 			if (this.shouldStop) break;
@@ -223,7 +233,10 @@ export class BackgroundSyncManager {
 					() =>
 						this.gmail.users.messages.list({
 							labelIds: options.labelIds,
-							maxResults: Math.min(PAGE_SIZE, maxToFetch - messageIds.length),
+							maxResults: Math.min(
+								PAGE_SIZE,
+								maxToFetch - allMessageIds.length
+							),
 							pageToken,
 							q: query,
 							userId: "me"
@@ -242,17 +255,22 @@ export class BackgroundSyncManager {
 				const messages = result.data.messages || [];
 				for (const msg of messages) {
 					if (msg.id) {
-						messageIds.push(msg.id);
+						allMessageIds.push(msg.id);
+						batchMessageIds.push(msg.id);
 					}
 				}
 
 				pageToken = result.data.nextPageToken || undefined;
 
 				// Add to queue in batches as we list
-				if (messageIds.length >= 100 || !pageToken) {
-					await addToSyncQueue(this.db, this.userId, messageIds);
-					this.progress.totalQueued += messageIds.length;
-					options.onProgress?.(this.progress);
+				if (batchMessageIds.length >= 100 || !pageToken) {
+					await addToSyncQueue(
+						this.db,
+						this.userId,
+						this.accountId,
+						batchMessageIds
+					);
+					batchMessageIds = []; // Clear batch after adding to queue
 				}
 			} catch (error) {
 				this.progress.errors.push(
@@ -261,17 +279,22 @@ export class BackgroundSyncManager {
 				break;
 			}
 
-			if (messageIds.length >= maxToFetch) {
+			if (allMessageIds.length >= maxToFetch) {
 				break;
 			}
 		} while (pageToken);
 
 		// Add any remaining to queue
-		if (messageIds.length > 0) {
-			await addToSyncQueue(this.db, this.userId, messageIds);
+		if (batchMessageIds.length > 0) {
+			await addToSyncQueue(
+				this.db,
+				this.userId,
+				this.accountId,
+				batchMessageIds
+			);
 		}
 
-		return messageIds;
+		return allMessageIds;
 	}
 
 	private async processQueue(options: BackgroundSyncOptions): Promise<void> {
@@ -390,6 +413,7 @@ export class BackgroundSyncManager {
 		invariant(message.threadId, "Thread ID should exist");
 
 		return {
+			accountId: this.accountId,
 			body: this.extractBody(message.payload),
 			date: new Date(getHeader("date") || Date.now()),
 			from: getHeader("from"),
@@ -456,14 +480,20 @@ let _backgroundSyncManager: BackgroundSyncManager | null = null;
 export function getBackgroundSyncManager(
 	accessToken: string,
 	db: Database,
-	userId: string
+	userId: string,
+	accountId: string
 ): BackgroundSyncManager {
 	if (
 		!_backgroundSyncManager ||
 		// Create new manager if credentials changed
 		_backgroundSyncManager.userId !== userId
 	) {
-		_backgroundSyncManager = new BackgroundSyncManager(accessToken, db, userId);
+		_backgroundSyncManager = new BackgroundSyncManager(
+			accessToken,
+			db,
+			userId,
+			accountId
+		);
 	}
 	return _backgroundSyncManager;
 }
