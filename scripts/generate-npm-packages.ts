@@ -5,8 +5,8 @@
  *
  * This creates a single gmail-agent package containing:
  *   - cli.js (bundled JavaScript with node shebang)
- *   - pglite.wasm
- *   - pglite.data
+ *   - pglite-assets/pglite.wasm
+ *   - pglite-assets/pglite.data
  *
  * Usage:
  *   bun scripts/generate-npm-packages.ts
@@ -29,7 +29,11 @@ function generatePackage(): void {
 	console.log("\n📦 Generating npm package\n");
 
 	// Check if dist directory exists with required files
-	const requiredFiles = ["cli.js", "pglite.wasm", "pglite.data"];
+	const requiredFiles = [
+		"cli.js",
+		"pglite-assets/pglite.wasm",
+		"pglite-assets/pglite.data"
+	];
 	for (const file of requiredFiles) {
 		if (!existsSync(join(DIST_DIR, file))) {
 			console.error(`Error: ${file} not found in dist/`);
@@ -44,15 +48,22 @@ function generatePackage(): void {
 	}
 
 	const packageDir = join(NPM_DIR, "gmail-agent");
+	const pgliteAssetsDir = join(packageDir, "pglite-assets");
 
-	mkdirSync(packageDir, { recursive: true });
+	mkdirSync(pgliteAssetsDir, { recursive: true });
 
 	console.log("Copying files...");
 
 	// Copy built files
 	cpSync(join(DIST_DIR, "cli.js"), join(packageDir, "cli.js"));
-	cpSync(join(DIST_DIR, "pglite.wasm"), join(packageDir, "pglite.wasm"));
-	cpSync(join(DIST_DIR, "pglite.data"), join(packageDir, "pglite.data"));
+	cpSync(
+		join(DIST_DIR, "pglite-assets/pglite.wasm"),
+		join(pgliteAssetsDir, "pglite.wasm")
+	);
+	cpSync(
+		join(DIST_DIR, "pglite-assets/pglite.data"),
+		join(pgliteAssetsDir, "pglite.data")
+	);
 
 	// Generate package.json
 	const npmPackageJson = {
@@ -66,7 +77,7 @@ function generatePackage(): void {
 		engines: {
 			node: ">=18"
 		},
-		files: ["cli.js", "pglite.wasm", "pglite.data"],
+		files: ["cli.js", "pglite-assets"],
 		homepage: "https://github.com/abhi-slash-git/gmail-agent#readme",
 		keywords: ["gmail", "email", "ai", "classification", "cli", "bedrock"],
 		license: "MIT",
@@ -92,8 +103,8 @@ function generatePackage(): void {
 	// Calculate total size
 	const files = [
 		"cli.js",
-		"pglite.wasm",
-		"pglite.data",
+		"pglite-assets/pglite.wasm",
+		"pglite-assets/pglite.data",
 		"package.json",
 		"README.md"
 	];

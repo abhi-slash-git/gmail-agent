@@ -29,14 +29,6 @@ mock.module("@electric-sql/pglite/live", () => ({
 	live: { name: "live" }
 }));
 
-mock.module("../src/pglite-assets/pglite.data", () => ({
-	default: "/mock/path/pglite.data"
-}));
-
-mock.module("../src/pglite-assets/pglite.wasm", () => ({
-	default: "/mock/path/pglite.wasm"
-}));
-
 // Mock node:fs/promises readFile
 const mockReadFile = mock(() => Promise.resolve(Buffer.from([0, 0, 0, 0])));
 mock.module("node:fs/promises", () => ({

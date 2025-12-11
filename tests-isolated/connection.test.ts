@@ -22,6 +22,11 @@ mock.module("../src/pglite-wrapper", () => ({
 	createPGlite: mockCreatePGlite
 }));
 
+// Mock node:fs/promises to prevent actual filesystem operations
+mock.module("node:fs/promises", () => ({
+	mkdir: mock(() => Promise.resolve())
+}));
+
 // Mock migrations - empty array means no migrations to run
 mock.module("../src/database/migrations", () => ({
 	migrations: []

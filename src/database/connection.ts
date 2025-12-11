@@ -13,6 +13,8 @@ import {
 	sql
 } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import invariant from "tiny-invariant";
 import { createPGlite } from "../pglite-wrapper";
 import type {
@@ -139,6 +141,9 @@ export async function getDatabase(dbDir: string): Promise<Database> {
 	if (_connection) {
 		return _connection.db;
 	}
+
+	// Ensure parent directory exists
+	await mkdir(dirname(dbDir), { recursive: true });
 
 	_connection = await DatabaseConnection.instance(dbDir);
 	await _connection.migrate();

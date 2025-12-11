@@ -11,6 +11,7 @@
 import {
 	access,
 	chmod,
+	copyFile,
 	mkdir,
 	readdir,
 	readFile,
@@ -21,6 +22,8 @@ import {
 import { join } from "node:path";
 import externalsPlugin from "../plugins/externals-plugin";
 import reactCompilerPlugin from "../plugins/react-compiler-plugin";
+
+const ROOT = process.cwd();
 
 async function main() {
 	const verbose =
@@ -61,39 +64,27 @@ async function main() {
 		process.exit(1);
 	}
 
-	// Rename output files to consistent names and track original names
+	// Rename index.js to cli.js
 	const files = await readdir(outdir);
-	let originalWasmName: string | null = null;
-	let originalDataName: string | null = null;
-
 	for (const file of files) {
-		const filePath = join(outdir, file);
-
 		if (file === "index.js") {
-			await rename(filePath, join(outdir, "cli.js"));
-		} else if (file.endsWith(".wasm") && file.startsWith("pglite-")) {
-			originalWasmName = file;
-			await rename(filePath, join(outdir, "pglite.wasm"));
-		} else if (file.endsWith(".data") && file.startsWith("pglite-")) {
-			originalDataName = file;
-			await rename(filePath, join(outdir, "pglite.data"));
+			await rename(join(outdir, file), join(outdir, "cli.js"));
 		}
 	}
 
-	// Update cli.js: fix shebang and update asset references
+	// Copy pglite assets from src/pglite-assets to dist/pglite-assets
+	const srcPgliteAssetsDir = join(ROOT, "src/pglite-assets");
+	const distPgliteAssetsDir = join(outdir, "pglite-assets");
+	await mkdir(distPgliteAssetsDir, { recursive: true });
+	await copyFile(join(srcPgliteAssetsDir, "pglite.wasm"), join(distPgliteAssetsDir, "pglite.wasm"));
+	await copyFile(join(srcPgliteAssetsDir, "pglite.data"), join(distPgliteAssetsDir, "pglite.data"));
+
+	// Update cli.js: fix shebang
 	const cliPath = join(outdir, "cli.js");
 	let content = await readFile(cliPath, "utf-8");
 	content = content
 		.replace(/^#!\/usr\/bin\/env bun\n?/, "#!/usr/bin/env node\n")
 		.replace(/^\/\/ @bun\n?/m, "");
-
-	// Replace hashed filenames with consistent names
-	if (originalWasmName) {
-		content = content.replaceAll(originalWasmName, "pglite.wasm");
-	}
-	if (originalDataName) {
-		content = content.replaceAll(originalDataName, "pglite.data");
-	}
 
 	await writeFile(cliPath, content);
 	await chmod(cliPath, 0o755);
