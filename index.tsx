@@ -22,6 +22,7 @@ const commands = {
 async function bootstrap(): Promise<Database> {
 	const env = getEnv();
 	console.log("Initializing database...");
+	console.log(env.DATABASE_URL);
 	const db = await getDatabase(env.DATABASE_URL);
 	console.log("Database ready.");
 	return db;

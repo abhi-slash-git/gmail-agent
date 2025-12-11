@@ -1,3 +1,5 @@
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import type { PGlite } from "@electric-sql/pglite";
 import {
 	and,
@@ -139,6 +141,9 @@ export async function getDatabase(dbDir: string): Promise<Database> {
 	if (_connection) {
 		return _connection.db;
 	}
+
+	// Ensure parent directory exists
+	await mkdir(dirname(dbDir), { recursive: true });
 
 	_connection = await DatabaseConnection.instance(dbDir);
 	await _connection.migrate();

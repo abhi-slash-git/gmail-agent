@@ -1,9 +1,14 @@
 import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { PGliteOptions } from "@electric-sql/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import { live } from "@electric-sql/pglite/live";
-import dataPath from "./pglite-assets/pglite.data" with { type: "file" };
-import wasmPath from "./pglite-assets/pglite.wasm" with { type: "file" };
+
+// Resolve paths relative to the script location (works in both Bun and Node.js)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const wasmPath = join(__dirname, "pglite-assets/pglite.wasm");
+const dataPath = join(__dirname, "pglite-assets/pglite.data");
 
 export async function createPGlite(
 	dataDir: string,
