@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { render } from "ink";
+import packageJson from "./package.json";
 import {
 	closeDatabase,
 	type Database,
@@ -9,7 +10,7 @@ import {
 import { getEnv } from "./src/env.js";
 import { App } from "./src/ui/App.js";
 
-const VERSION = "1.0.0";
+const VERSION = packageJson.version;
 
 const commands = {
 	auth: () => import("./src/cli/commands/auth.js"),
