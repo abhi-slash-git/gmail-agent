@@ -1,71 +1,22 @@
+import TurndownService from "turndown";
+
+const turndown = new TurndownService({
+	bulletListMarker: "-",
+	codeBlockStyle: "fenced",
+	headingStyle: "atx"
+});
+
+// Remove script, style, head, noscript completely
+turndown.remove(["script", "style", "head", "noscript", "iframe", "object"]);
+
 /**
- * Converts HTML content to plain text.
- * Handles common HTML entities, removes scripts/styles, and preserves basic formatting.
+ * Converts HTML content to Markdown using turndown.
  */
 export function htmlToText(html: string): string {
 	if (!html) return "";
 
-	let sanitized = html;
-	let previous: string;
-	do {
-		previous = sanitized;
-		sanitized = sanitized
-			// Remove comments
-			.replace(/<!--[\s\S]*?-->/g, "")
-			// Remove style tags and contents
-			.replace(/<style\b[^>]*>[\s\S]*?<\/style\b[^>]*>/gi, "")
-			// Remove script tags and contents
-			.replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, "")
-			// Remove head section
-			.replace(/<head\b[^>]*>[\s\S]*?<\/head\b[^>]*>/gi, "")
-			// Remove noscript tags
-			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\b[^>]*>/gi, "");
-	} while (sanitized !== previous);
-
-	// Remove all remaining tags recursively to address incomplete multi-character sanitization
-	let noTags = sanitized
-		// Add newlines for block elements
-		.replace(
-			/<\/?(p|div|br|hr|tr|li|h[1-6]|blockquote|pre)\b[^>]*\/?>/gi,
-			"\n"
-		)
-		// Add double newlines for paragraphs
-		.replace(/<\/p>/gi, "\n\n");
-	let prevNoTags: string;
-	do {
-		prevNoTags = noTags;
-		noTags = noTags.replace(/<[^>]+>/g, " ");
-	} while (noTags !== prevNoTags);
-	return (
-		noTags
-			// Decode common named entities
-			.replace(/&nbsp;/gi, " ")
-			.replace(/&lt;/gi, "<")
-			.replace(/&gt;/gi, ">")
-			.replace(/&quot;/gi, '"')
-			.replace(/&apos;/gi, "'")
-			.replace(/&#39;/g, "'")
-			.replace(/&rsquo;/gi, "'")
-			.replace(/&lsquo;/gi, "'")
-			.replace(/&rdquo;/gi, '"')
-			.replace(/&ldquo;/gi, '"')
-			.replace(/&mdash;/gi, "—")
-			.replace(/&ndash;/gi, "–")
-			.replace(/&hellip;/gi, "...")
-			.replace(/&copy;/gi, "©")
-			.replace(/&reg;/gi, "®")
-			.replace(/&trade;/gi, "™")
-			.replace(/&amp;/gi, "&")
-			// Decode numeric entities (decimal)
-			.replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
-			// Decode numeric entities (hex)
-			.replace(/&#x([0-9a-f]+);/gi, (_, hex) =>
-				String.fromCharCode(parseInt(hex, 16))
-			)
-			// Normalize whitespace
-			.replace(/[ \t]+/g, " ")
-			.replace(/\n\s*\n\s*\n/g, "\n\n")
-			.replace(/^\s+|\s+$/gm, "")
-			.trim()
-	);
+	return turndown
+		.turndown(html)
+		.replace(/\n{3,}/g, "\n\n") // Normalize multiple newlines
+		.trim();
 }
