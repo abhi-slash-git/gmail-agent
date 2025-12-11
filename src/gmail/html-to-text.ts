@@ -5,8 +5,11 @@
 export function htmlToText(html: string): string {
 	if (!html) return "";
 
-	return (
-		html
+	let sanitized = html;
+	let previous: string;
+	do {
+		previous = sanitized;
+		sanitized = sanitized
 			// Remove comments
 			.replace(/<!--[\s\S]*?-->/g, "")
 			// Remove style tags and contents
@@ -16,7 +19,11 @@ export function htmlToText(html: string): string {
 			// Remove head section
 			.replace(/<head\b[^>]*>[\s\S]*?<\/head\b[^>]*>/gi, "")
 			// Remove noscript tags
-			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\b[^>]*>/gi, "")
+			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\b[^>]*>/gi, "");
+	} while (sanitized !== previous);
+
+	return (
+		sanitized
 			// Add newlines for block elements
 			.replace(
 				/<\/?(p|div|br|hr|tr|li|h[1-6]|blockquote|pre)\b[^>]*\/?>/gi,
