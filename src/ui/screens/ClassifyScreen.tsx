@@ -12,6 +12,7 @@ import {
 	findClassifiersByUserId,
 	findUnclassifiedEmails,
 	getAccountId,
+	getGmailTokens,
 	getUserProfile,
 	NO_MATCH_CLASSIFIER_ID,
 	NO_MATCH_CLASSIFIER_NAME,
@@ -19,6 +20,7 @@ import {
 	upsertEmailClassification
 } from "../../database/connection.js";
 import { getEnv } from "../../env.js";
+import { GmailClient } from "../../gmail/client.js";
 import { ClassificationGrid } from "../components/ClassificationGrid.js";
 import { Header } from "../components/Header.js";
 import { Spinner } from "../components/Spinner.js";
@@ -29,6 +31,7 @@ type ClassifyState = "idle" | "preparing" | "classifying" | "success" | "error";
 interface ClassifyResult {
 	processed: number;
 	classified: number;
+	labelsApplied: number;
 	failed: number;
 	elapsed: string;
 }
@@ -103,6 +106,7 @@ export function ClassifyScreen() {
 					classified: 0,
 					elapsed: "0s",
 					failed: 0,
+					labelsApplied: 0,
 					processed: 0
 				});
 				setState("success");
@@ -196,9 +200,19 @@ export function ClassifyScreen() {
 				options
 			);
 
+			// Get Gmail tokens for auto-sync
+			const tokens = await getGmailTokens(db, env.USER_ID);
+			let gmail: GmailClient | null = null;
+			const labelIdCache = new Map<string, string>();
+
+			if (tokens) {
+				gmail = new GmailClient(tokens.accessToken);
+			}
+
 			// Process results and save to database
 			let classified = 0;
 			let noMatch = 0;
+			let labelsApplied = 0;
 
 			for (const res of results) {
 				const email = emails.find((e) => e.gmailId === res.emailId);
@@ -210,6 +224,26 @@ export function ClassifyScreen() {
 					);
 
 					if (classifier) {
+						let labelApplied = false;
+
+						// Auto-sync label to Gmail
+						if (gmail && classifier.labelName) {
+							try {
+								// Get or create label (use cache to avoid duplicate API calls)
+								let labelId = labelIdCache.get(classifier.labelName);
+								if (!labelId) {
+									labelId = await gmail.getOrCreateLabel(classifier.labelName);
+									labelIdCache.set(classifier.labelName, labelId);
+								}
+								await gmail.addLabel(email.gmailId, labelId);
+								labelApplied = true;
+								labelsApplied++;
+							} catch {
+								// Label sync failed, but continue with classification
+								// labelApplied remains false
+							}
+						}
+
 						// Save classification to database
 						await upsertEmailClassification(db, {
 							accountId,
@@ -218,7 +252,7 @@ export function ClassifyScreen() {
 							confidence: res.confidence,
 							emailId: email.id,
 							gmailId: email.gmailId,
-							labelApplied: false,
+							labelApplied,
 							labelName: classifier.labelName,
 							reasoning: "",
 							runId: run.id,
@@ -282,6 +316,7 @@ export function ClassifyScreen() {
 				classified,
 				elapsed: `${elapsed}s`,
 				failed: noMatch,
+				labelsApplied,
 				processed: emails.length
 			});
 			setState("success");
@@ -375,6 +410,13 @@ export function ClassifyScreen() {
 							<Text dimColor>Successfully Classified: </Text>
 							<Text bold color="green">
 								{String(result.classified)}
+							</Text>{" "}
+							email(s)
+						</Text>
+						<Text>
+							<Text dimColor>Labels Synced to Gmail: </Text>
+							<Text bold color="cyan">
+								{String(result.labelsApplied)}
 							</Text>{" "}
 							email(s)
 						</Text>

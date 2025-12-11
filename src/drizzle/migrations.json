@@ -1,95 +1,95 @@
 [
-	{
-		"bps": true,
-		"folderMillis": 1765303914499,
-		"hash": "243688164e7fcc896a0a25d8be7346cff36271a3dbf8b13e5f22a63b61d42b88",
-		"sql": [
-			"CREATE TABLE \"account\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"accessToken\" text,\n\t\"accessTokenExpiresAt\" timestamp,\n\t\"accountId\" text NOT NULL,\n\t\"providerId\" text NOT NULL,\n\t\"refreshToken\" text,\n\t\"scope\" text,\n\t\"userId\" text NOT NULL\n);\n",
-			"\nCREATE TABLE \"classification_run\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"completedAt\" timestamp,\n\t\"emailsClassified\" bigint DEFAULT 0 NOT NULL,\n\t\"emailsProcessed\" bigint DEFAULT 0 NOT NULL,\n\t\"startedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"status\" text DEFAULT 'running' NOT NULL,\n\t\"userId\" text NOT NULL\n);\n",
-			"\nCREATE TABLE \"classifier\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"description\" text NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"labelName\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"priority\" bigint DEFAULT 0,\n\t\"userId\" text NOT NULL\n);\n"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765304025140,
-		"hash": "64e33b8be8a772adab478ba2bb587997fa475a0dcc4083d2531630efbb1bc7ad",
-		"sql": [
-			"CREATE TABLE \"email\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"body\" text NOT NULL,\n\t\"date\" timestamp NOT NULL,\n\t\"from\" text NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"labels\" text[] DEFAULT '{}' NOT NULL,\n\t\"snippet\" text NOT NULL,\n\t\"subject\" text NOT NULL,\n\t\"threadId\" text NOT NULL,\n\t\"to\" text NOT NULL,\n\t\"userId\" text NOT NULL,\n\tCONSTRAINT \"email_gmailId_unique\" UNIQUE(\"gmailId\")\n);\n"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765304315667,
-		"hash": "723159f5f9227a4e9c0462f7258d1073630258b895248b79ed18dd5e37b511f5",
-		"sql": [
-			"CREATE TABLE \"email_classification\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"classifierId\" text NOT NULL,\n\t\"classifierName\" text NOT NULL,\n\t\"confidence\" double precision NOT NULL,\n\t\"emailId\" text NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"labelApplied\" boolean DEFAULT false NOT NULL,\n\t\"labelName\" text NOT NULL,\n\t\"reasoning\" text NOT NULL,\n\t\"runId\" text,\n\t\"userId\" text NOT NULL,\n\tCONSTRAINT \"email_classification_emailId_classifierId_unique\" UNIQUE(\"emailId\",\"classifierId\")\n);\n"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765308728171,
-		"hash": "877e26ee54f6d72931952d1338c669afd2c2cd63c845d2416fba7748c1aaa555",
-		"sql": [
-			"CREATE INDEX \"account_user_provider_idx\" ON \"account\" USING btree (\"userId\",\"providerId\");",
-			"\nCREATE INDEX \"classifier_user_idx\" ON \"classifier\" USING btree (\"userId\");",
-			"\nCREATE INDEX \"email_user_date_idx\" ON \"email\" USING btree (\"userId\",\"date\");",
-			"\nCREATE INDEX \"email_gmail_id_idx\" ON \"email\" USING btree (\"gmailId\");",
-			"\nCREATE INDEX \"email_classification_email_idx\" ON \"email_classification\" USING btree (\"emailId\");",
-			"\nCREATE INDEX \"email_classification_user_idx\" ON \"email_classification\" USING btree (\"userId\");",
-			"\nCREATE INDEX \"email_classification_gmail_idx\" ON \"email_classification\" USING btree (\"gmailId\");"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765315477379,
-		"hash": "fa566ef78cd219f95c824c53678e3e32724a6a4884b91cf15f58e9a573b818f0",
-		"sql": [
-			"CREATE TABLE \"sync_queue\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"userId\" text NOT NULL,\n\t\"status\" text DEFAULT 'pending' NOT NULL,\n\t\"retryCount\" bigint DEFAULT 0 NOT NULL,\n\t\"lastError\" text,\n\t\"syncedAt\" timestamp,\n\tCONSTRAINT \"sync_queue_gmailId_userId_unique\" UNIQUE(\"gmailId\",\"userId\")\n);\n",
-			"\nCREATE INDEX \"sync_queue_user_status_idx\" ON \"sync_queue\" USING btree (\"userId\",\"status\");",
-			"\nCREATE INDEX \"sync_queue_gmail_id_idx\" ON \"sync_queue\" USING btree (\"gmailId\");"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765333859959,
-		"hash": "85da64e61d8167695805fce71abd0d60be3dbbcc306b62d3125855557aa656e7",
-		"sql": [
-			"ALTER TABLE \"email\" ADD COLUMN \"archived\" boolean DEFAULT false NOT NULL;"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765335161919,
-		"hash": "57d0c2f18856b0adbc1b543febf283aa03f32d45283d9524ed5b9e929b80a0e8",
-		"sql": [
-			"ALTER TABLE \"email\" ADD COLUMN \"unread\" boolean DEFAULT false NOT NULL;"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765380594349,
-		"hash": "8f697240c5eb1ca4aeb7aa6322f8320f5b2292a58c2ff2caacab1c8a4954fdc2",
-		"sql": [
-			"ALTER TABLE \"account\" ADD COLUMN \"email\" text;",
-			"\nALTER TABLE \"account\" ADD COLUMN \"name\" text;"
-		]
-	},
-	{
-		"bps": true,
-		"folderMillis": 1765427527313,
-		"hash": "e628c9052747cc348c900e4087b80216803da40a9ff53d2a51254a60fa7c571d",
-		"sql": [
-			"ALTER TABLE \"account\" ADD COLUMN \"defaultClassifiersSeeded\" boolean DEFAULT false NOT NULL;",
-			"\nALTER TABLE \"classification_run\" ADD COLUMN \"accountId\" text NOT NULL;",
-			"\nALTER TABLE \"classifier\" ADD COLUMN \"accountId\" text NOT NULL;",
-			"\nALTER TABLE \"email\" ADD COLUMN \"accountId\" text NOT NULL;",
-			"\nALTER TABLE \"email_classification\" ADD COLUMN \"accountId\" text NOT NULL;",
-			"\nALTER TABLE \"sync_queue\" ADD COLUMN \"accountId\" text NOT NULL;",
-			"\nALTER TABLE \"classification_run\" ADD CONSTRAINT \"classification_run_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
-			"\nALTER TABLE \"classifier\" ADD CONSTRAINT \"classifier_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
-			"\nALTER TABLE \"email\" ADD CONSTRAINT \"email_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
-			"\nALTER TABLE \"email_classification\" ADD CONSTRAINT \"email_classification_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
-			"\nALTER TABLE \"sync_queue\" ADD CONSTRAINT \"sync_queue_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;"
-		]
-	}
+  {
+    "sql": [
+      "CREATE TABLE \"account\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"accessToken\" text,\n\t\"accessTokenExpiresAt\" timestamp,\n\t\"accountId\" text NOT NULL,\n\t\"providerId\" text NOT NULL,\n\t\"refreshToken\" text,\n\t\"scope\" text,\n\t\"userId\" text NOT NULL\n);\n",
+      "\nCREATE TABLE \"classification_run\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"completedAt\" timestamp,\n\t\"emailsClassified\" bigint DEFAULT 0 NOT NULL,\n\t\"emailsProcessed\" bigint DEFAULT 0 NOT NULL,\n\t\"startedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"status\" text DEFAULT 'running' NOT NULL,\n\t\"userId\" text NOT NULL\n);\n",
+      "\nCREATE TABLE \"classifier\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"description\" text NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"labelName\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"priority\" bigint DEFAULT 0,\n\t\"userId\" text NOT NULL\n);\n"
+    ],
+    "bps": true,
+    "folderMillis": 1765303914499,
+    "hash": "243688164e7fcc896a0a25d8be7346cff36271a3dbf8b13e5f22a63b61d42b88"
+  },
+  {
+    "sql": [
+      "CREATE TABLE \"email\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"body\" text NOT NULL,\n\t\"date\" timestamp NOT NULL,\n\t\"from\" text NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"labels\" text[] DEFAULT '{}' NOT NULL,\n\t\"snippet\" text NOT NULL,\n\t\"subject\" text NOT NULL,\n\t\"threadId\" text NOT NULL,\n\t\"to\" text NOT NULL,\n\t\"userId\" text NOT NULL,\n\tCONSTRAINT \"email_gmailId_unique\" UNIQUE(\"gmailId\")\n);\n"
+    ],
+    "bps": true,
+    "folderMillis": 1765304025140,
+    "hash": "64e33b8be8a772adab478ba2bb587997fa475a0dcc4083d2531630efbb1bc7ad"
+  },
+  {
+    "sql": [
+      "CREATE TABLE \"email_classification\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"classifierId\" text NOT NULL,\n\t\"classifierName\" text NOT NULL,\n\t\"confidence\" double precision NOT NULL,\n\t\"emailId\" text NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"labelApplied\" boolean DEFAULT false NOT NULL,\n\t\"labelName\" text NOT NULL,\n\t\"reasoning\" text NOT NULL,\n\t\"runId\" text,\n\t\"userId\" text NOT NULL,\n\tCONSTRAINT \"email_classification_emailId_classifierId_unique\" UNIQUE(\"emailId\",\"classifierId\")\n);\n"
+    ],
+    "bps": true,
+    "folderMillis": 1765304315667,
+    "hash": "723159f5f9227a4e9c0462f7258d1073630258b895248b79ed18dd5e37b511f5"
+  },
+  {
+    "sql": [
+      "CREATE INDEX \"account_user_provider_idx\" ON \"account\" USING btree (\"userId\",\"providerId\");",
+      "\nCREATE INDEX \"classifier_user_idx\" ON \"classifier\" USING btree (\"userId\");",
+      "\nCREATE INDEX \"email_user_date_idx\" ON \"email\" USING btree (\"userId\",\"date\");",
+      "\nCREATE INDEX \"email_gmail_id_idx\" ON \"email\" USING btree (\"gmailId\");",
+      "\nCREATE INDEX \"email_classification_email_idx\" ON \"email_classification\" USING btree (\"emailId\");",
+      "\nCREATE INDEX \"email_classification_user_idx\" ON \"email_classification\" USING btree (\"userId\");",
+      "\nCREATE INDEX \"email_classification_gmail_idx\" ON \"email_classification\" USING btree (\"gmailId\");"
+    ],
+    "bps": true,
+    "folderMillis": 1765308728171,
+    "hash": "877e26ee54f6d72931952d1338c669afd2c2cd63c845d2416fba7748c1aaa555"
+  },
+  {
+    "sql": [
+      "CREATE TABLE \"sync_queue\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\n\t\"gmailId\" text NOT NULL,\n\t\"userId\" text NOT NULL,\n\t\"status\" text DEFAULT 'pending' NOT NULL,\n\t\"retryCount\" bigint DEFAULT 0 NOT NULL,\n\t\"lastError\" text,\n\t\"syncedAt\" timestamp,\n\tCONSTRAINT \"sync_queue_gmailId_userId_unique\" UNIQUE(\"gmailId\",\"userId\")\n);\n",
+      "\nCREATE INDEX \"sync_queue_user_status_idx\" ON \"sync_queue\" USING btree (\"userId\",\"status\");",
+      "\nCREATE INDEX \"sync_queue_gmail_id_idx\" ON \"sync_queue\" USING btree (\"gmailId\");"
+    ],
+    "bps": true,
+    "folderMillis": 1765315477379,
+    "hash": "fa566ef78cd219f95c824c53678e3e32724a6a4884b91cf15f58e9a573b818f0"
+  },
+  {
+    "sql": [
+      "ALTER TABLE \"email\" ADD COLUMN \"archived\" boolean DEFAULT false NOT NULL;"
+    ],
+    "bps": true,
+    "folderMillis": 1765333859959,
+    "hash": "85da64e61d8167695805fce71abd0d60be3dbbcc306b62d3125855557aa656e7"
+  },
+  {
+    "sql": [
+      "ALTER TABLE \"email\" ADD COLUMN \"unread\" boolean DEFAULT false NOT NULL;"
+    ],
+    "bps": true,
+    "folderMillis": 1765335161919,
+    "hash": "57d0c2f18856b0adbc1b543febf283aa03f32d45283d9524ed5b9e929b80a0e8"
+  },
+  {
+    "sql": [
+      "ALTER TABLE \"account\" ADD COLUMN \"email\" text;",
+      "\nALTER TABLE \"account\" ADD COLUMN \"name\" text;"
+    ],
+    "bps": true,
+    "folderMillis": 1765380594349,
+    "hash": "8f697240c5eb1ca4aeb7aa6322f8320f5b2292a58c2ff2caacab1c8a4954fdc2"
+  },
+  {
+    "sql": [
+      "ALTER TABLE \"account\" ADD COLUMN \"defaultClassifiersSeeded\" boolean DEFAULT false NOT NULL;",
+      "\nALTER TABLE \"classification_run\" ADD COLUMN \"accountId\" text NOT NULL;",
+      "\nALTER TABLE \"classifier\" ADD COLUMN \"accountId\" text NOT NULL;",
+      "\nALTER TABLE \"email\" ADD COLUMN \"accountId\" text NOT NULL;",
+      "\nALTER TABLE \"email_classification\" ADD COLUMN \"accountId\" text NOT NULL;",
+      "\nALTER TABLE \"sync_queue\" ADD COLUMN \"accountId\" text NOT NULL;",
+      "\nALTER TABLE \"classification_run\" ADD CONSTRAINT \"classification_run_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "\nALTER TABLE \"classifier\" ADD CONSTRAINT \"classifier_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "\nALTER TABLE \"email\" ADD CONSTRAINT \"email_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "\nALTER TABLE \"email_classification\" ADD CONSTRAINT \"email_classification_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "\nALTER TABLE \"sync_queue\" ADD CONSTRAINT \"sync_queue_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;"
+    ],
+    "bps": true,
+    "folderMillis": 1765427527313,
+    "hash": "e628c9052747cc348c900e4087b80216803da40a9ff53d2a51254a60fa7c571d"
+  }
 ]
