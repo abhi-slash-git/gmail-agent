@@ -6,6 +6,7 @@ import {
 	withRetry
 } from "../utils/retry.js";
 import type { Email } from "./client";
+import { htmlToText } from "./html-to-text.js";
 
 // Configuration - Optimized for Gmail API limits
 // Per user: 15,000 quota units/min, messages.get = 5 units = 3,000 gets/min = 50/sec
@@ -360,19 +361,7 @@ export class ParallelGmailSync {
 			// Prefer plain text over HTML
 			if (textBody) return textBody;
 			if (htmlBody) {
-				// Basic HTML to text conversion
-				return htmlBody
-					.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-					.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-					.replace(/<[^>]+>/g, " ")
-					.replace(/&nbsp;/g, " ")
-					.replace(/&amp;/g, "&")
-					.replace(/&lt;/g, "<")
-					.replace(/&gt;/g, ">")
-					.replace(/&quot;/g, '"')
-					.replace(/&#39;/g, "'")
-					.replace(/\s+/g, " ")
-					.trim();
+				return htmlToText(htmlBody);
 			}
 		}
 

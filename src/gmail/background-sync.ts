@@ -19,6 +19,7 @@ import {
 	isRateLimitError,
 	withRetry
 } from "../utils/retry.js";
+import { htmlToText } from "./html-to-text.js";
 
 const MAX_CONCURRENT_FETCHES = 50;
 const MIN_CONCURRENT_FETCHES = 5;
@@ -455,18 +456,7 @@ export class BackgroundSyncManager {
 
 			if (textBody) return textBody;
 			if (htmlBody) {
-				return htmlBody
-					.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-					.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-					.replace(/<[^>]+>/g, " ")
-					.replace(/&nbsp;/g, " ")
-					.replace(/&amp;/g, "&")
-					.replace(/&lt;/g, "<")
-					.replace(/&gt;/g, ">")
-					.replace(/&quot;/g, '"')
-					.replace(/&#39;/g, "'")
-					.replace(/\s+/g, " ")
-					.trim();
+				return htmlToText(htmlBody);
 			}
 		}
 
