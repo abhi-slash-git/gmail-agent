@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { PGliteOptions } from "@electric-sql/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import { live } from "@electric-sql/pglite/live";
@@ -8,10 +9,10 @@ export async function createPGlite(
 	dataDir: string,
 	options?: PGliteOptions
 ): Promise<PGlite> {
-	// Read the embedded files
+	// Read the embedded files using Node.js fs
 	const [wasmBuffer, dataBuffer] = await Promise.all([
-		Bun.file(wasmPath).arrayBuffer(),
-		Bun.file(dataPath).arrayBuffer()
+		readFile(wasmPath),
+		readFile(dataPath)
 	]);
 
 	// Compile the WASM module
