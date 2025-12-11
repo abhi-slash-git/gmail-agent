@@ -1,2 +1,5 @@
 bun run tsc
 bun run lint
+
+# Add any files modified by the linter back to the commit
+git diff --name-only | xargs -r git add
