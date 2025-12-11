@@ -1,3 +1,5 @@
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import type { PGlite } from "@electric-sql/pglite";
 import {
 	and,
@@ -13,8 +15,6 @@ import {
 	sql
 } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
-import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
 import invariant from "tiny-invariant";
 import { createPGlite } from "../pglite-wrapper";
 import type {

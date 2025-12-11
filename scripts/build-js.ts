@@ -76,8 +76,14 @@ async function main() {
 	const srcPgliteAssetsDir = join(ROOT, "src/pglite-assets");
 	const distPgliteAssetsDir = join(outdir, "pglite-assets");
 	await mkdir(distPgliteAssetsDir, { recursive: true });
-	await copyFile(join(srcPgliteAssetsDir, "pglite.wasm"), join(distPgliteAssetsDir, "pglite.wasm"));
-	await copyFile(join(srcPgliteAssetsDir, "pglite.data"), join(distPgliteAssetsDir, "pglite.data"));
+	await copyFile(
+		join(srcPgliteAssetsDir, "pglite.wasm"),
+		join(distPgliteAssetsDir, "pglite.wasm")
+	);
+	await copyFile(
+		join(srcPgliteAssetsDir, "pglite.data"),
+		join(distPgliteAssetsDir, "pglite.data")
+	);
 
 	// Update cli.js: fix shebang
 	const cliPath = join(outdir, "cli.js");
