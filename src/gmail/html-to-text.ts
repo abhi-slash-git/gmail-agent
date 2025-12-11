@@ -10,13 +10,13 @@ export function htmlToText(html: string): string {
 			// Remove comments
 			.replace(/<!--[\s\S]*?-->/g, "")
 			// Remove style tags and contents
-			.replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "")
+			.replace(/<style\b[^>]*>[\s\S]*?<\/style\b[^>]*>/gi, "")
 			// Remove script tags and contents
-			.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+			.replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, "")
 			// Remove head section
-			.replace(/<head\b[^>]*>[\s\S]*?<\/head\s*>/gi, "")
+			.replace(/<head\b[^>]*>[\s\S]*?<\/head\b[^>]*>/gi, "")
 			// Remove noscript tags
-			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\s*>/gi, "")
+			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\b[^>]*>/gi, "")
 			// Add newlines for block elements
 			.replace(
 				/<\/?(p|div|br|hr|tr|li|h[1-6]|blockquote|pre)\b[^>]*\/?>/gi,
