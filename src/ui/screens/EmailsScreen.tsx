@@ -28,7 +28,7 @@ import { GmailClient } from "../../gmail/client.js";
 import { Header } from "../components/Header.js";
 import { Markdown } from "../components/Markdown";
 import { Spinner } from "../components/Spinner.js";
-import { useApp } from "../context.js";
+import { useApp, type ViewMode } from "../context.js";
 import { useLiveQuery } from "../hooks/useLiveQuery.js";
 
 type ViewState =
@@ -49,28 +49,66 @@ interface EmailWithClassification extends Email {
 	classification?: EmailClassification;
 }
 
-type ViewMode = "all" | "inbox" | "unread" | "archived";
-
 export function EmailsScreen() {
-	const { db, sql, setScreen } = useApp();
+	const { db, sql, setScreen, emailsScreenState, setEmailsScreenState } =
+		useApp();
 	const [state, setState] = useState<ViewState>("list");
 	const [actionError, setActionError] = useState<string | null>(null);
-	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [page, setPage] = useState(0);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [activeQuery, setActiveQuery] = useState("");
-	const [selectedClassifierIds, setSelectedClassifierIds] = useState<string[]>(
-		[]
-	);
 	const [filterIndex, setFilterIndex] = useState(0);
-	const [viewportStart, setViewportStart] = useState(0);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [processingAction, setProcessingAction] = useState("");
 	const [classifyProgress, setClassifyProgress] = useState({
 		current: 0,
 		total: 0
 	});
-	const [viewMode, setViewMode] = useState<ViewMode>("inbox");
+	const [searchQuery, setSearchQuery] = useState("");
+
+	// Use persisted state from context
+	const {
+		selectedIndex,
+		viewportStart,
+		page,
+		viewMode,
+		activeQuery,
+		selectedClassifierIds
+	} = emailsScreenState;
+
+	// Helper functions to update persisted state
+	const setSelectedIndex = (value: number | ((prev: number) => number)) => {
+		setEmailsScreenState((prev) => ({
+			...prev,
+			selectedIndex:
+				typeof value === "function" ? value(prev.selectedIndex) : value
+		}));
+	};
+	const setViewportStart = (value: number | ((prev: number) => number)) => {
+		setEmailsScreenState((prev) => ({
+			...prev,
+			viewportStart:
+				typeof value === "function" ? value(prev.viewportStart) : value
+		}));
+	};
+	const setPage = (value: number | ((prev: number) => number)) => {
+		setEmailsScreenState((prev) => ({
+			...prev,
+			page: typeof value === "function" ? value(prev.page) : value
+		}));
+	};
+	const setViewMode = (value: ViewMode) => {
+		setEmailsScreenState((prev) => ({ ...prev, viewMode: value }));
+	};
+	const setActiveQuery = (value: string) => {
+		setEmailsScreenState((prev) => ({ ...prev, activeQuery: value }));
+	};
+	const setSelectedClassifierIds = (
+		value: string[] | ((prev: string[]) => string[])
+	) => {
+		setEmailsScreenState((prev) => ({
+			...prev,
+			selectedClassifierIds:
+				typeof value === "function" ? value(prev.selectedClassifierIds) : value
+		}));
+	};
 
 	const env = getEnv();
 

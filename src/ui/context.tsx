@@ -42,6 +42,17 @@ export interface BackgroundClassifyState {
 	activeTasks: number; // Track number of concurrent classification tasks
 }
 
+export type ViewMode = "all" | "inbox" | "unread" | "archived";
+
+export interface EmailsScreenState {
+	selectedIndex: number;
+	viewportStart: number;
+	page: number;
+	viewMode: ViewMode;
+	activeQuery: string;
+	selectedClassifierIds: string[];
+}
+
 interface AppContextValue {
 	db: Database;
 	sql: PGlite | null;
@@ -59,6 +70,10 @@ interface AppContextValue {
 		state:
 			| BackgroundClassifyState
 			| ((prev: BackgroundClassifyState) => BackgroundClassifyState)
+	) => void;
+	emailsScreenState: EmailsScreenState;
+	setEmailsScreenState: (
+		state: EmailsScreenState | ((prev: EmailsScreenState) => EmailsScreenState)
 	) => void;
 }
 
@@ -93,6 +108,16 @@ export function AppProvider({ children, db, onExit }: AppProviderProps) {
 			isRunning: false,
 			total: 0
 		});
+	const [emailsScreenState, setEmailsScreenState] = useState<EmailsScreenState>(
+		{
+			activeQuery: "",
+			page: 0,
+			selectedClassifierIds: [],
+			selectedIndex: 0,
+			viewMode: "inbox",
+			viewportStart: 0
+		}
+	);
 
 	const refreshAuth = useCallback(async () => {
 		const env = getEnv();
@@ -174,6 +199,7 @@ export function AppProvider({ children, db, onExit }: AppProviderProps) {
 				backgroundClassify,
 				backgroundSync,
 				db,
+				emailsScreenState,
 				error,
 				exit,
 				isAuthenticated,
@@ -182,6 +208,7 @@ export function AppProvider({ children, db, onExit }: AppProviderProps) {
 				screen,
 				setBackgroundClassify,
 				setBackgroundSync,
+				setEmailsScreenState,
 				setScreen,
 				sql
 			}}
