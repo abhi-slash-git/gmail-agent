@@ -63,8 +63,8 @@ export function AuthScreen() {
 		setTokenExpiry(null);
 	};
 
-	useInput((input, key) => {
-		if (key.escape || input === "b") {
+	useInput((_input, key) => {
+		if (key.escape) {
 			setScreen("home");
 		}
 	});
@@ -136,7 +136,7 @@ export function AuthScreen() {
 			)}
 
 			<Box marginTop={1}>
-				<Text dimColor>Press b or Esc to go back</Text>
+				<Text dimColor>Press Esc to go back</Text>
 			</Box>
 		</Box>
 	);
