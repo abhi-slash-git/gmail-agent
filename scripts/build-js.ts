@@ -8,7 +8,16 @@
  *     pglite.wasm     - PGlite WebAssembly module
  */
 
-import { access, chmod, mkdir, readdir, rename, rm } from "node:fs/promises";
+import {
+	access,
+	chmod,
+	mkdir,
+	readFile,
+	readdir,
+	rename,
+	rm,
+	writeFile
+} from "node:fs/promises";
 import { join } from "node:path";
 import externalsPlugin from "../plugins/externals-plugin";
 import reactCompilerPlugin from "../plugins/react-compiler-plugin";
@@ -52,32 +61,42 @@ async function main() {
 		process.exit(1);
 	}
 
-	// Rename output files to consistent names
+	// Rename output files to consistent names and track original names
 	const files = await readdir(outdir);
+	let originalWasmName: string | null = null;
+	let originalDataName: string | null = null;
 
 	for (const file of files) {
 		const filePath = join(outdir, file);
 
 		if (file === "index.js") {
-			// Rename and fix shebang for Node.js using sed (faster than read/write for large files)
-			const cliPath = join(outdir, "cli.js");
-			await rename(filePath, cliPath);
-
-			// Replace bun shebang with node shebang using sed
-			Bun.spawnSync([
-				"sed",
-				"-i",
-				"",
-				"1s|#!/usr/bin/env bun|#!/usr/bin/env node|",
-				cliPath
-			]);
-			await chmod(cliPath, 0o755);
-		} else if (file.endsWith(".wasm")) {
+			await rename(filePath, join(outdir, "cli.js"));
+		} else if (file.endsWith(".wasm") && file.startsWith("pglite-")) {
+			originalWasmName = file;
 			await rename(filePath, join(outdir, "pglite.wasm"));
-		} else if (file.endsWith(".data")) {
+		} else if (file.endsWith(".data") && file.startsWith("pglite-")) {
+			originalDataName = file;
 			await rename(filePath, join(outdir, "pglite.data"));
 		}
 	}
+
+	// Update cli.js: fix shebang and update asset references
+	const cliPath = join(outdir, "cli.js");
+	let content = await readFile(cliPath, "utf-8");
+	content = content
+		.replace(/^#!\/usr\/bin\/env bun\n?/, "#!/usr/bin/env node\n")
+		.replace(/^\/\/ @bun\n?/m, "");
+
+	// Replace hashed filenames with consistent names
+	if (originalWasmName) {
+		content = content.replaceAll(originalWasmName, "pglite.wasm");
+	}
+	if (originalDataName) {
+		content = content.replaceAll(originalDataName, "pglite.data");
+	}
+
+	await writeFile(cliPath, content);
+	await chmod(cliPath, 0o755);
 
 	const end = performance.now();
 	const buildTime = ((end - start) / 1000).toFixed(2);
