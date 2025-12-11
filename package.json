@@ -60,5 +60,5 @@
 		"tsc": "tsgo --noEmit 2>&1 | head -50"
 	},
 	"type": "module",
-	"version": "1.0.2"
+	"version": "1.0.3"
 }
