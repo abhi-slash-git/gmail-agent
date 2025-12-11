@@ -22,17 +22,22 @@ export function htmlToText(html: string): string {
 			.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\b[^>]*>/gi, "");
 	} while (sanitized !== previous);
 
+	// Remove all remaining tags recursively to address incomplete multi-character sanitization
+	let noTags = sanitized
+		// Add newlines for block elements
+		.replace(
+			/<\/?(p|div|br|hr|tr|li|h[1-6]|blockquote|pre)\b[^>]*\/?>/gi,
+			"\n"
+		)
+		// Add double newlines for paragraphs
+		.replace(/<\/p>/gi, "\n\n");
+	let prevNoTags: string;
+	do {
+		prevNoTags = noTags;
+		noTags = noTags.replace(/<[^>]+>/g, " ");
+	} while (noTags !== prevNoTags);
 	return (
-		sanitized
-			// Add newlines for block elements
-			.replace(
-				/<\/?(p|div|br|hr|tr|li|h[1-6]|blockquote|pre)\b[^>]*\/?>/gi,
-				"\n"
-			)
-			// Add double newlines for paragraphs
-			.replace(/<\/p>/gi, "\n\n")
-			// Remove all remaining tags
-			.replace(/<[^>]+>/g, " ")
+		noTags
 			// Decode common named entities
 			.replace(/&nbsp;/gi, " ")
 			.replace(/&lt;/gi, "<")
