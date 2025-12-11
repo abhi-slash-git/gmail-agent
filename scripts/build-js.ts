@@ -12,8 +12,8 @@ import {
 	access,
 	chmod,
 	mkdir,
-	readFile,
 	readdir,
+	readFile,
 	rename,
 	rm,
 	writeFile
