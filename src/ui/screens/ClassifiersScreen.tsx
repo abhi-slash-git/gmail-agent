@@ -28,6 +28,7 @@ export function ClassifiersScreen() {
 	// Live query for classifiers
 	const { rows: rawClassifiers, loading: isLoading } = useLiveQuery<{
 		id: string;
+		accountId: string;
 		createdAt: Date;
 		updatedAt: Date;
 		description: string;
@@ -45,6 +46,7 @@ export function ClassifiersScreen() {
 	// Transform to Classifier type
 	const classifiers: Classifier[] = useMemo(() => {
 		return rawClassifiers.map((row) => ({
+			accountId: row.accountId,
 			createdAt: row.createdAt,
 			description: row.description,
 			enabled: row.enabled,
@@ -196,7 +198,7 @@ export function ClassifiersScreen() {
 					</Box>
 
 					<Box marginTop={1}>
-						<Text dimColor>Press Enter to save, Esc to cancel</Text>
+						<Text dimColor>Press Enter to save, esc to cancel</Text>
 					</Box>
 				</Box>
 			);
@@ -232,7 +234,7 @@ export function ClassifiersScreen() {
 					/>
 
 					<Box marginTop={1}>
-						<Text dimColor>Press Esc to cancel</Text>
+						<Text dimColor>Press esc to cancel</Text>
 					</Box>
 				</Box>
 			);
@@ -299,7 +301,7 @@ export function ClassifiersScreen() {
 				/>
 
 				<Box marginTop={1}>
-					<Text dimColor>Press Esc to go back</Text>
+					<Text dimColor>Press esc to go back</Text>
 				</Box>
 			</Box>
 		);
@@ -344,7 +346,7 @@ export function ClassifiersScreen() {
 			/>
 
 			<Box marginTop={1}>
-				<Text dimColor>Press Esc to go back</Text>
+				<Text dimColor>Press esc to go back</Text>
 			</Box>
 		</Box>
 	);

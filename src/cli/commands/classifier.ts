@@ -3,6 +3,7 @@ import {
 	createClassifier,
 	deleteClassifier,
 	findClassifiersByUserId,
+	getAccountId,
 	getDatabase,
 	updateClassifier
 } from "../../database/connection";
@@ -93,7 +94,15 @@ async function add(args: string[]) {
 	const env = getEnv();
 	const db = await getDatabase(env.DATABASE_URL);
 
+	// Get accountId for foreign key
+	const accountId = await getAccountId(db, env.USER_ID);
+	if (!accountId) {
+		console.error("No account found. Run 'gmail-agent auth connect' first.");
+		process.exit(1);
+	}
+
 	const created = await createClassifier(db, {
+		accountId,
 		description: values.description,
 		labelName: values.label,
 		name: values.name,

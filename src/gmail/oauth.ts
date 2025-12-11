@@ -19,6 +19,7 @@ export interface OAuthTokens {
 export async function startOAuthFlow(config: {
 	clientId: string;
 	clientSecret: string;
+	onAuthUrl?: (url: string) => void;
 }): Promise<OAuthTokens> {
 	return await new Promise((resolve, reject) => {
 		const server = createServer();
@@ -41,8 +42,8 @@ export async function startOAuthFlow(config: {
 				scope: SCOPES
 			});
 
-			console.log("\nOpening browser for Google authorization...");
-			console.log(`If browser doesn't open, visit:\n${authUrl}\n`);
+			// Notify caller of the auth URL (for UI display)
+			config.onAuthUrl?.(authUrl);
 
 			// Open browser (cross-platform)
 			const open = await import("open");

@@ -47,6 +47,9 @@ export function useLiveQuery<T>(
 		const db = sql as PGliteWithLive;
 		let mounted = true;
 
+		// Parse params at the start of effect to ensure consistency
+		const currentParams = JSON.parse(paramsKey) as unknown[];
+
 		const subscribe = async () => {
 			try {
 				// Unsubscribe from previous query if exists
@@ -74,16 +77,12 @@ export function useLiveQuery<T>(
 						callback,
 						limit: options.limit,
 						offset: options.offset ?? 0,
-						params: JSON.parse(paramsKey),
+						params: currentParams,
 						query
 					});
 				} else {
 					// Use simple query
-					result = await db.live.query<T>(
-						query,
-						JSON.parse(paramsKey),
-						callback
-					);
+					result = await db.live.query<T>(query, currentParams, callback);
 				}
 
 				unsubscribeRef.current = result.unsubscribe;

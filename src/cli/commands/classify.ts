@@ -6,6 +6,7 @@ import {
 	findClassifiersByUserId,
 	findEmailsByUserId,
 	findUnclassifiedEmails,
+	getAccountId,
 	getDatabase,
 	getUserProfile,
 	NO_MATCH_CLASSIFIER_ID,
@@ -51,8 +52,16 @@ export default async function classify(args: string[]) {
 		process.exit(1);
 	}
 
+	// Get accountId for foreign key
+	const accountId = await getAccountId(db, env.USER_ID);
+	if (!accountId) {
+		console.error("No account found. Run 'gmail-agent auth connect' first.");
+		process.exit(1);
+	}
+
 	// Create classification run record
 	const run = await createClassificationRun(db, {
+		accountId,
 		status: "running",
 		userId: env.USER_ID
 	});
@@ -153,6 +162,7 @@ export default async function classify(args: string[]) {
 
 					// Save the classification to database (labelApplied = false)
 					await upsertEmailClassification(db, {
+						accountId,
 						classifierId: classifier.id,
 						classifierName: classifier.name,
 						confidence: result.confidence,
@@ -170,6 +180,7 @@ export default async function classify(args: string[]) {
 			} else {
 				// Save "no match" record to prevent re-processing
 				await upsertEmailClassification(db, {
+					accountId,
 					classifierId: NO_MATCH_CLASSIFIER_ID,
 					classifierName: NO_MATCH_CLASSIFIER_NAME,
 					confidence: 0,

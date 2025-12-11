@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import {
 	countEmailsByUserId,
+	getAccountId,
 	getDatabase,
 	getLatestEmailDate,
 	upsertEmails
@@ -32,6 +33,13 @@ export default async function sync(args: string[]) {
 	}
 
 	const gmail = new GmailClient(accessToken);
+
+	// Get accountId for foreign key
+	const accountId = await getAccountId(db, env.USER_ID);
+	if (!accountId) {
+		console.error("No account found. Run 'gmail-agent auth connect' first.");
+		process.exit(1);
+	}
 
 	const maxEmails = parseInt(values["max-emails"] ?? "500", 10);
 	const syncNew = values.new;
@@ -78,6 +86,7 @@ export default async function sync(args: string[]) {
 
 	// Convert Gmail emails to database format and upsert
 	const emailsToUpsert = emails.map((e) => ({
+		accountId,
 		body: e.body,
 		date: e.date,
 		from: e.from,

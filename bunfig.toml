@@ -4,6 +4,9 @@ exact = true
 
 cache.disable = true
 
+[test]
+coverage = true
+
 [console]
 depth = 4
 

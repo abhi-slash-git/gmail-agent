@@ -73,5 +73,23 @@
 			"ALTER TABLE \"account\" ADD COLUMN \"email\" text;",
 			"\nALTER TABLE \"account\" ADD COLUMN \"name\" text;"
 		]
+	},
+	{
+		"bps": true,
+		"folderMillis": 1765427527313,
+		"hash": "e628c9052747cc348c900e4087b80216803da40a9ff53d2a51254a60fa7c571d",
+		"sql": [
+			"ALTER TABLE \"account\" ADD COLUMN \"defaultClassifiersSeeded\" boolean DEFAULT false NOT NULL;",
+			"\nALTER TABLE \"classification_run\" ADD COLUMN \"accountId\" text NOT NULL;",
+			"\nALTER TABLE \"classifier\" ADD COLUMN \"accountId\" text NOT NULL;",
+			"\nALTER TABLE \"email\" ADD COLUMN \"accountId\" text NOT NULL;",
+			"\nALTER TABLE \"email_classification\" ADD COLUMN \"accountId\" text NOT NULL;",
+			"\nALTER TABLE \"sync_queue\" ADD COLUMN \"accountId\" text NOT NULL;",
+			"\nALTER TABLE \"classification_run\" ADD CONSTRAINT \"classification_run_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+			"\nALTER TABLE \"classifier\" ADD CONSTRAINT \"classifier_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+			"\nALTER TABLE \"email\" ADD CONSTRAINT \"email_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+			"\nALTER TABLE \"email_classification\" ADD CONSTRAINT \"email_classification_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+			"\nALTER TABLE \"sync_queue\" ADD CONSTRAINT \"sync_queue_accountId_account_id_fk\" FOREIGN KEY (\"accountId\") REFERENCES \"public\".\"account\"(\"id\") ON DELETE cascade ON UPDATE no action;"
+		]
 	}
 ]
