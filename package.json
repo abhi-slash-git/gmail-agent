@@ -1,10 +1,10 @@
 {
 	"dependencies": {
-		"@ai-sdk/amazon-bedrock": "3.0.68",
-		"@ai-sdk/anthropic": "2.0.54",
+		"@ai-sdk/amazon-bedrock": "3.0.72",
+		"@ai-sdk/anthropic": "3.0.1",
 		"@babel/core": "7.28.5",
 		"@electric-sql/pglite": "0.3.14",
-		"ai": "5.0.108",
+		"ai": "6.0.3",
 		"babel-plugin-react-compiler": "1.0.0",
 		"drizzle-orm": "0.45.1",
 		"googleapis": "168.0.0",
