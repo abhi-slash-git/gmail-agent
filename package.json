@@ -2,7 +2,7 @@
 	"dependencies": {
 		"@ai-sdk/amazon-bedrock": "3.0.68",
 		"@ai-sdk/anthropic": "2.0.54",
-		"@babel/core": "7.28.5",
+		"@babel/core": "7.28.6",
 		"@electric-sql/pglite": "0.3.14",
 		"ai": "5.0.108",
 		"babel-plugin-react-compiler": "1.0.0",
